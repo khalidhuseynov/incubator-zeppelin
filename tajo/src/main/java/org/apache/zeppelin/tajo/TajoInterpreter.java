@@ -12,7 +12,9 @@ import java.util.Properties;
 import org.apache.tajo.conf.TajoConf;
 import org.apache.tajo.thrift.ThriftServerConstants;
 import org.apache.tajo.thrift.client.TajoThriftClient;
+import org.apache.tajo.thrift.generated.TBriefQueryInfo;
 import org.apache.tajo.thrift.generated.TColumn;
+import org.apache.tajo.thrift.generated.TGetQueryStatusResponse;
 import org.apache.tajo.thrift.generated.TSchema;
 import org.apache.tajo.thrift.generated.TTableDesc;
 import org.slf4j.Logger;
@@ -288,7 +290,19 @@ public class TajoInterpreter extends Interpreter {
 
   @Override
   public int getProgress(InterpreterContext context) {
-    return 0;
+      try {
+          List<TBriefQueryInfo> queryList = tajoClient.getQueryList();
+          
+          for (int i = 0; i < queryList.size(); i++) {
+              TGetQueryStatusResponse queryStatus = tajoClient.getQueryStatus(queryList.get(i).queryId);
+              return (int) queryStatus.progress * 100;
+          }
+      
+      } catch (Exception e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+      }
+      return 0;
   }
 
   @Override
