@@ -40,14 +40,14 @@ public class ZeppelinHubRepoTest {
     ZeppelinhubRestApiHandler mockedZeppelinhubHandler = mock(ZeppelinhubRestApiHandler.class);
 
     byte[] response = Files.toByteArray(pathOfNotebooks);
-    when(mockedZeppelinhubHandler.get("")).thenReturn(new String(response));
-    
+    when(mockedZeppelinhubHandler.asyncGet("")).thenReturn(new String(response));
+
     response =  Files.toByteArray(pathOfNotebook);
-    when(mockedZeppelinhubHandler.get("AAAAA")).thenReturn(new String(response));
-    
-    when(mockedZeppelinhubHandler.del("AAAAA")).thenReturn(true);
-    when(mockedZeppelinhubHandler.del("BBBBB")).thenReturn(false);
-    
+    when(mockedZeppelinhubHandler.asyncGet("AAAAA")).thenReturn(new String(response));
+
+    //when(mockedZeppelinhubHandler.asyncDel("AAAAA")).thenReturn(true);
+    //when(mockedZeppelinhubHandler.asyncDel("BBBBB")).thenReturn(false);
+
     return mockedZeppelinhubHandler;
   }
 /*
@@ -143,7 +143,7 @@ public class ZeppelinHubRepoTest {
     repo.remove("AAAAA");
   }
   
-  @Test(expected = IOException.class)
+  @Test
   public void testRemoveNoteError() throws IOException {
     // not suppose to throw
     repo.remove("BBBBB");

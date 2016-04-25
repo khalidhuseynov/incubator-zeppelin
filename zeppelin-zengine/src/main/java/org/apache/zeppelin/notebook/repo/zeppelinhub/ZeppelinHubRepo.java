@@ -17,6 +17,10 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+/**
+ * ZeppelinHub repo class.
+ */
+
 public class ZeppelinHubRepo implements NotebookRepo {
   private static final Logger LOG = LoggerFactory.getLogger(ZeppelinhubRestApiHandler.class);
   private static final String DEFAULT_SERVER = "https://www.zeppelinhub.com";
@@ -72,7 +76,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
 
   @Override
   public List<NoteInfo> list() throws IOException {
-    String response = zeppelinhubHandler.get("");
+    String response = zeppelinhubHandler.asyncGet("");
     List<NoteInfo> notes = GSON.fromJson(response, new TypeToken<List<NoteInfo>>() {}.getType());
     if (notes == null) {
       return Collections.emptyList();
@@ -86,7 +90,8 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return EMPTY_NOTE;
     }
-    String response = zeppelinhubHandler.get(noteId);
+    //String response = zeppelinhubHandler.get(noteId);
+    String response = zeppelinhubHandler.asyncGet(noteId);
     Note note = GSON.fromJson(response, Note.class);
     if (note == null) {
       return EMPTY_NOTE;
@@ -101,25 +106,23 @@ public class ZeppelinHubRepo implements NotebookRepo {
       throw new IOException("Zeppelinhub failed to save empty note");
     }
     String notebook = GSON.toJson(note);
-    zeppelinhubHandler.put(notebook);
+    zeppelinhubHandler.asyncPut(notebook);
     LOG.info("ZeppelinHub REST API saving note {} ", note.id()); 
   }
 
   @Override
   public void remove(String noteId) throws IOException {
-    zeppelinhubHandler.del(noteId);
+    zeppelinhubHandler.asyncDel(noteId);
     LOG.info("ZeppelinHub REST API removing note {} ", noteId);
   }
 
   @Override
   public void close() {
-    // TODO Auto-generated method stub
     
   }
 
   @Override
   public void checkpoint(String noteId, String checkPointName) throws IOException {
-    // TODO Auto-generated method stub
     
   }
 
