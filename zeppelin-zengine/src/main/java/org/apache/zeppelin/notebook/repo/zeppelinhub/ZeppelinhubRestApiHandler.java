@@ -13,6 +13,7 @@ import org.eclipse.jetty.client.util.BufferingResponseListener;
 import org.eclipse.jetty.client.util.InputStreamResponseListener;
 import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpMethod;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -83,7 +84,8 @@ public class ZeppelinhubRestApiHandler {
   }
 
   private HttpClient getAsyncClient() {
-    HttpClient httpClient = new HttpClient();
+    SslContextFactory sslContextFactory = new SslContextFactory();
+    HttpClient httpClient = new HttpClient(sslContextFactory);
 
     // Configure HttpClient
     httpClient.setFollowRedirects(false);
@@ -91,7 +93,6 @@ public class ZeppelinhubRestApiHandler {
     //TODO(khalid): consider whether require to follow redirects
     //TODO(khalid): consider multi-threaded connection manager case
     //TODO(khalid): consider using proxy
-    //TODO(khalid): consider https requests, set up ssl? //not current
 
     return httpClient;
   }
@@ -107,7 +108,7 @@ public class ZeppelinhubRestApiHandler {
     // Wait for the response headers to arrive
     Response response;
     try {
-      response = listener.get(5, TimeUnit.SECONDS);
+      response = listener.get(30, TimeUnit.SECONDS);
     } catch (InterruptedException | TimeoutException | ExecutionException e) {
       LOG.error("Cannot perform Get request to ZeppelinHub", e);
       throw new IOException("Cannot load note from ZeppelinHub", e);
@@ -115,8 +116,6 @@ public class ZeppelinhubRestApiHandler {
 
     int code = response.getStatus();
     if (code == 200) {
-      System.out.println("returned with 200");
-      // TODO(khalid): close input-stream properly
       try (InputStream responseContent = listener.getInputStream()) {
         note = IOUtils.toString(responseContent, "UTF-8");
       }
@@ -124,7 +123,6 @@ public class ZeppelinhubRestApiHandler {
       LOG.error("ZeppelinHub Get {} returned with status {} ", zepelinhubUrl + argument, code);
       throw new IOException("Cannot load note from ZeppelinHub");
     }
-
     return note;
   }
 
