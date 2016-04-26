@@ -51,7 +51,7 @@ public class ZeppelinhubRestApiHandler {
     try {
       client.start();
     } catch (Exception e) {
-      LOG.error("Cannot initialize jetty async client", e);
+      LOG.error("Cannot initialize ZeppelinHub REST async client", e);
     }
 
   }
@@ -89,10 +89,11 @@ public class ZeppelinhubRestApiHandler {
 
     // Configure HttpClient
     httpClient.setFollowRedirects(false);
+    httpClient.setMaxConnectionsPerDestination(100);
     // Config considerations
+    //TODO(khalid): consider using proxy
     //TODO(khalid): consider whether require to follow redirects
     //TODO(khalid): consider multi-threaded connection manager case
-    //TODO(khalid): consider using proxy
 
     return httpClient;
   }
@@ -140,19 +141,17 @@ public class ZeppelinhubRestApiHandler {
           @Override
           public void onComplete(Result res) {
             if (!res.isFailed() && res.getResponse().getStatus() == 200) {
-              LOG.info("Successfully saved note to ZeppelinHub with {} response",
-                  res.getResponse());
+              LOG.info("Successfully saved note to ZeppelinHub with {}",
+                  res.getResponse().getStatus());
             } else {
               LOG.warn("Failed to save note to ZeppelinHub with HttpStatus {}",
                   res.getResponse().getStatus());
             }
-            // countDown.countDown(); ?
           }
 
           @Override
           public void onFailure(Response response, Throwable failure) {
             LOG.error("Failed to save note to ZeppelinHub: {}", response.getReason(), failure);
-            // countDown.countDown();
           }
         });
   }
@@ -170,24 +169,26 @@ public class ZeppelinhubRestApiHandler {
           @Override
           public void onComplete(Result res) {
             if (!res.isFailed() && res.getResponse().getStatus() == 200) {
-              LOG.info("Successfully removed note from ZeppelinHub with {} response",
-                  res.getResponse());
+              LOG.info("Successfully removed note from ZeppelinHub with {}",
+                  res.getResponse().getStatus());
             } else {
               LOG.warn("Failed to remove note from ZeppelinHub with HttpStatus {}",
                   res.getResponse().getStatus());
             }
-            // countDown.countDown(); ?
           }
 
           @Override
           public void onFailure(Response response, Throwable failure) {
             LOG.error("Failed to remove note from ZeppelinHub: {}", response.getReason(), failure);
-            // countDown.countDown();
           }
         });
   }
 
   public void close() {
-
+    try {
+      client.stop();
+    } catch (Exception e) {
+      LOG.info("Couldn't stop ZeppelinHub client properly", e);
+    }
   }
 }
