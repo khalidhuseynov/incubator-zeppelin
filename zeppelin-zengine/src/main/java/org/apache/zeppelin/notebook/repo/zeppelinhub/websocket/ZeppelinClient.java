@@ -1,11 +1,16 @@
 package org.apache.zeppelin.notebook.repo.zeppelinhub.websocket;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
+import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +18,10 @@ import org.slf4j.LoggerFactory;
 public class ZeppelinClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZeppelinClient.class);
   private Client baseClient;
+  private URI zeppelinUri;
   public WebSocketClient wsClient;
   public URI zeppelinWebsocketUrl;
+  private ConcurrentHashMap<String, Session> zeppelinConnectionMap;
 
   public static ZeppelinClient newInstance(String url, Client client) {
     return new ZeppelinClient(url, client);
@@ -49,6 +56,30 @@ public class ZeppelinClient {
       LOG.error("Cannot stop Zeppelin websocket client", e);
     }
   }
+
+  /* per notebook based ws connection */
+  public Session getZeppelinConnection(String noteId) throws IOException, InterruptedException, ExecutionException {
+    // return existing connection
+    if (zeppelinConnectionMap.containsKey(noteId)) {
+      LOG.info("Connection for {} exists in map", noteId);
+      return zeppelinConnectionMap.get(noteId);
+    }
+
+    // create connection
+    ClientUpgradeRequest request = new ClientUpgradeRequest();
+    ZeppelinWebsocket socket = new ZeppelinWebsocket(noteId);
+    Future<Session> future = wsClient.connect(socket, zeppelinUri, request);
+    Session session = future.get();
+    if (zeppelinConnectionMap.containsKey(noteId)) {
+      session.close();
+      session = zeppelinConnectionMap.get(noteId);
+    } else {
+      zeppelinConnectionMap.put(noteId, session);
+    }
+    LOG.info("Create Zeppelin websocket connection {} {}", zeppelinUri.toString(), noteId);
+    return session;
+  }
+
   private void sendToHub(ZeppelinWebsocket socket, String msgFromZeppelin) {
     Map<String, String> meta = new HashMap<String, String>();
     meta.put("token", baseClient.token);
