@@ -27,7 +27,7 @@ public class ZeppelinhubUtils {
              .serialize();
   }
   
-  public static String DeadMessage(String token) {
+  public static String deadMessage(String token) {
     if (StringUtils.isBlank(token)) {
       LOG.error("Cannot create Dead message: token is null or empty");
       return ZeppelinhubMessage.EMPTY.serialize();
@@ -39,9 +39,9 @@ public class ZeppelinhubUtils {
              .serialize();
   }
   
-  public static String PingMessage(String token) {
+  public static String pingMessage(String token) {
     if (StringUtils.isBlank(token)) {
-      LOG.error("Cannot create Live message: token is null or empty");
+      LOG.error("Cannot create Ping message: token is null or empty");
       return ZeppelinhubMessage.EMPTY.serialize();
     }
     HashMap<String, Object> data = new HashMap<String, Object>();
