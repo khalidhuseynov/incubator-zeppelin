@@ -9,4 +9,8 @@ import org.slf4j.LoggerFactory;
  */
 public class Client {
   private Logger LOG = LoggerFactory.getLogger(Client.class);
+  
+  public Client() {
+    LOG.debug("Init Client");
+  }
 }
