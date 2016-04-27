@@ -33,5 +33,11 @@ public class ZeppelinhubMessageTest {
     assertEquals(expected.data, zeppelinHubMsg.data);
     assertEquals(expected.meta, zeppelinHubMsg.meta);
   }
+  
+  @Test
+  public void testThatInvalidStringReturnEmptyZeppelinhubMessage() {
+    assertEquals(ZeppelinhubMessage.EMPTY, ZeppelinhubMessage.deserialize(""));
+    assertEquals(ZeppelinhubMessage.EMPTY, ZeppelinhubMessage.deserialize("dwfewewrewr"));
+  }
 
 }
