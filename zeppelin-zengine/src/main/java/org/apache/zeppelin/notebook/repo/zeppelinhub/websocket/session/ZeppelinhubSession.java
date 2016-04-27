@@ -25,7 +25,7 @@ public class ZeppelinhubSession {
   }
   
   public boolean isSessionOpen() {
-    return ((session != null) && (session.isOpen())) ? true : false;
+    return ((session != null) && (session.isOpen()));
   }
   
   public void close() {
