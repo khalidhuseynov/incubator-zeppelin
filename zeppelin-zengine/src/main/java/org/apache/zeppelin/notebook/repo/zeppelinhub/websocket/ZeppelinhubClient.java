@@ -3,8 +3,12 @@ package org.apache.zeppelin.notebook.repo.zeppelinhub.websocket;
 
 import java.net.HttpCookie;
 import java.net.URI;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.zeppelin.notebook.repo.zeppelinhub.ZeppelinHubRepo;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.scheduler.SchedulerService;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.scheduler.ZeppelinHubHeartbeat;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.utils.ZeppelinhubUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
@@ -32,18 +36,36 @@ public class ZeppelinhubClient {
   private final ZeppelinhubWebsocket socket;
   private final String zeppelinhubToken;
   
+  private static final int MB = 1048576;
+  private static final int MAXIMUN_TEXT_SIZE = 64 * MB;
+  private static final long CONNECTION_IDLE_TIME = TimeUnit.SECONDS.toMillis(30);
+  
+  private SchedulerService schedulerService;
+  
   private ZeppelinhubClient(String url, String token) {
     zeppelinhubWebsocketUrl = URI.create(url);
-    client = new WebSocketClient();
+    client = createNewWebsocketClient();
     conectionRequest = setConnectionrequest(token);
     socket = new ZeppelinhubWebsocket();
     zeppelinhubToken = token;
+    schedulerService = SchedulerService.create(10);
   }
   
   private ClientUpgradeRequest setConnectionrequest(String token) {
     ClientUpgradeRequest request = new ClientUpgradeRequest();
     request.setCookies(Lists.newArrayList(new HttpCookie(ZeppelinHubRepo.TOKEN_HEADER, token)));
     return request;
+  }
+  
+  private WebSocketClient createNewWebsocketClient() {
+    WebSocketClient client = new WebSocketClient();
+    client.setMaxTextMessageBufferSize(MAXIMUN_TEXT_SIZE);
+    client.setMaxIdleTimeout(CONNECTION_IDLE_TIME);
+    return client;
+  }
+  
+  private void addRoutines(Session session) {
+    schedulerService.add(ZeppelinHubHeartbeat.newInstance(session, zeppelinhubToken), 10, 23);
   }
   
   public static ZeppelinhubClient newInstance(String url, String token) {
@@ -53,7 +75,9 @@ public class ZeppelinhubClient {
   public void start() {
     try {
       client.start();
-      client.connect(socket, zeppelinhubWebsocketUrl, conectionRequest);
+      Future<Session> future = client.connect(socket, zeppelinhubWebsocketUrl, conectionRequest);
+      Session session = future.get();
+      addRoutines(session);
     } catch (Exception e) {
       LOG.error("Cannot connect to zeppelinhub via websocket", e);
     }
