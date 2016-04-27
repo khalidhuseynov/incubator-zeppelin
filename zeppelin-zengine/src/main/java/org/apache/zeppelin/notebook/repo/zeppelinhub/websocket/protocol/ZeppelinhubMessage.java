@@ -51,7 +51,7 @@ public class ZeppelinhubMessage {
     ZeppelinhubMessage msg;
     try {
       msg = gson.fromJson(zeppelinhubMessage, ZeppelinhubMessage.class);
-    } catch(JsonSyntaxException ex) {
+    } catch (JsonSyntaxException ex) {
       LOG.error("Cannot deserialize zeppelinhub message", ex);
       msg = EMPTY;
     }
