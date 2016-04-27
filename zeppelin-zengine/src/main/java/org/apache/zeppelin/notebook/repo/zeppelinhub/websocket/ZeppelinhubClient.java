@@ -5,6 +5,7 @@ import java.net.HttpCookie;
 import java.net.URI;
 import java.util.concurrent.Future;
 
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.utils.ZeppelinhubUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -29,7 +30,7 @@ public class ZeppelinhubClient {
   private final ClientUpgradeRequest conectionRequest;
   private final ZeppelinhubWebsocketEvent socket;
   private static final String TOKEN_HEADER = "X-Zeppelin-Token";
-  
+  private final String zeppelinhubToken;
   private Session session;
   
   private ZeppelinhubClient(String url, String token) {
@@ -37,7 +38,7 @@ public class ZeppelinhubClient {
     client = new WebSocketClient();
     conectionRequest = setConnectionrequest(token);
     socket = new ZeppelinhubWebsocketEvent();
-    
+    zeppelinhubToken = token;
   }
   
   private ClientUpgradeRequest setConnectionrequest(String token) {
@@ -92,6 +93,7 @@ public class ZeppelinhubClient {
     public void onWebSocketConnect(Session session) {
       LOG.info("Opening a new session to Zeppelinhub {}", session.hashCode());
       this.zeppelinHubSession = session;
+      send(ZeppelinhubUtils.LiveMessage(zeppelinhubToken));
     }
 
     @Override
