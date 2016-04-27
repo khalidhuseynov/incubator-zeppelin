@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class ZeppelinhubUtils {
   private static final Logger LOG = LoggerFactory.getLogger(ZeppelinhubUtils.class);
 
-  public static String LiveMessage(String token) {
+  public static String liveMessage(String token) {
     if (StringUtils.isBlank(token)) {
       LOG.error("Cannot create Live message: token is null or empty");
       return ZeppelinhubMessage.EMPTY.serialize();
