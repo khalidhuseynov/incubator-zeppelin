@@ -76,8 +76,24 @@ public class ZeppelinClient {
     } else {
       zeppelinConnectionMap.put(noteId, session);
     }
+    //TODO(khalid): clean log later
     LOG.info("Create Zeppelin websocket connection {} {}", zeppelinUri.toString(), noteId);
     return session;
+  }
+
+  /**
+   * Close and remove ZeppelinConnection
+   */
+  public void removeZeppelinConnection(String noteId) {
+      if (zeppelinConnectionMap.containsKey(noteId)) {
+        Session conn = zeppelinConnectionMap.get(noteId);
+        if (conn.isOpen()) {
+          conn.close();
+        }
+        zeppelinConnectionMap.remove(noteId);
+      }
+    //TODO(khalid): clean log later
+    LOG.info("Removed Zeppelin ws connection for the following note {}", noteId);
   }
 
   private void sendToHub(ZeppelinWebsocket socket, String msgFromZeppelin) {
