@@ -19,8 +19,6 @@ import com.google.common.collect.Lists;
  * Zeppelinhub websocket client.
  * 
  * This class connect to Zeppelinhub and send/recieve event.
- * 
- * @author anthonyc
  *
  */
 public class ZeppelinhubClient {
@@ -73,8 +71,6 @@ public class ZeppelinhubClient {
   
   /**
    * Zeppelinhub websocket handler.
-   * @author anthonyc
-   *
    */
   public class ZeppelinhubWebsocketEvent implements WebSocketListener {
     private Logger LOG = LoggerFactory.getLogger(ZeppelinhubWebsocketEvent.class);
