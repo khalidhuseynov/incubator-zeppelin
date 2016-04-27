@@ -38,4 +38,16 @@ public class ZeppelinhubUtils {
              .newMessage(ZeppelinHubOp.DEAD, data, new HashMap<String, String>())
              .serialize();
   }
+  
+  public static String PingMessage(String token) {
+    if (StringUtils.isBlank(token)) {
+      LOG.error("Cannot create Live message: token is null or empty");
+      return ZeppelinhubMessage.EMPTY.serialize();
+    }
+    HashMap<String, Object> data = new HashMap<String, Object>();
+    data.put("token", token);
+    return ZeppelinhubMessage
+             .newMessage(ZeppelinHubOp.PING, data, new HashMap<String, String>())
+             .serialize();
+  }
 }
