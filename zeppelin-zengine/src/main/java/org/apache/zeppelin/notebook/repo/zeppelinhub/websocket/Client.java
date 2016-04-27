@@ -20,7 +20,7 @@ public class Client {
     zeppelinhubClient = ZeppelinhubClient.newInstance(zeppelinhubUri, token);
     zeppelinClient = ZeppelinClient.newInstance(zeppelinUri, this);
   }
-  
+
   public void start() {
     if (zeppelinhubClient != null) {
       zeppelinhubClient.start();
@@ -37,6 +37,7 @@ public class Client {
     if (zeppelinClient != null) {
       zeppelinClient.stop();
     }
+
   }
 
 }
