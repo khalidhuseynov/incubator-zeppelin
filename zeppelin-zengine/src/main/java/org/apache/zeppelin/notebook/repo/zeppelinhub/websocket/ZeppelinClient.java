@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -57,8 +58,12 @@ public class ZeppelinClient {
     }
   }
 
-  /* per notebook based ws connection */
-  public Session getZeppelinConnection(String noteId) throws IOException, InterruptedException, ExecutionException {
+  /* per notebook based ws connection, returns null if can't connect */
+  public Session getZeppelinConnection(String noteId) {
+    if (StringUtils.isBlank(noteId)) {
+      LOG.warn("Cannot return websocket connection for blank noteId");
+      return null;
+    }
     // return existing connection
     if (zeppelinConnectionMap.containsKey(noteId)) {
       LOG.info("Connection for {} exists in map", noteId);
@@ -68,8 +73,16 @@ public class ZeppelinClient {
     // create connection
     ClientUpgradeRequest request = new ClientUpgradeRequest();
     ZeppelinWebsocket socket = new ZeppelinWebsocket(noteId);
-    Future<Session> future = wsClient.connect(socket, zeppelinUri, request);
-    Session session = future.get();
+    Future<Session> future = null;
+    Session session = null;
+    try {
+      future = wsClient.connect(socket, zeppelinUri, request);
+      session = future.get();
+    } catch (IOException | InterruptedException | ExecutionException e) {
+      LOG.error("Couldn't establish websocket connection to Zeppelin ", e);
+      return null;
+    }
+
     if (zeppelinConnectionMap.containsKey(noteId)) {
       session.close();
       session = zeppelinConnectionMap.get(noteId);
