@@ -16,8 +16,8 @@ import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
-import com.nflabs.zeppelinhub.notebook.websocket.protocol.ZeppelinMessage;
 
 
 /**
@@ -26,7 +26,7 @@ import com.nflabs.zeppelinhub.notebook.websocket.protocol.ZeppelinMessage;
  */
 public class Client {
   private static final Logger LOG = LoggerFactory.getLogger(Client.class);
-  private final ZeppelinhubClient zeppelinhubClient;
+  public final ZeppelinhubClient zeppelinhubClient;
   private static ZeppelinClient zeppelinClient;
   public String token;
   private static Gson gson;
@@ -144,6 +144,20 @@ public class Client {
     // TODO(khalid): handle authentication
     String msg = gson.toJson(zeppelinMsg);
     LOG.debug("Serialized Zeppelin message is {}", msg);
+    return msg;
+  }
+
+  public Message deserialize(String zeppelinMessage) {
+    if (StringUtils.isBlank(zeppelinMessage)) {
+      return null;
+    }
+    Message msg;
+    try {
+      msg = gson.fromJson(zeppelinMessage, Message.class);
+    } catch (JsonSyntaxException ex) {
+      LOG.error("Cannot deserialize zeppelin message", ex);
+      msg = null;
+    }
     return msg;
   }
 }
