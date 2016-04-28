@@ -12,6 +12,7 @@ import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.Client;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.rest.ZeppelinhubRestApiHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,8 +42,9 @@ public class ZeppelinHubRepo implements NotebookRepo {
     token = conf.getString("ZEPPELINHUB_API_TOKEN", ZEPPELIN_CONF_PROP_NAME_TOKEN, "");
     zeppelinhubHandler = ZeppelinhubRestApiHandler.newInstance(zeppelinHubUrl, token);
 
-    //TODO(khalid): add zeppelin uri?
-    websocketClient = new Client(StringUtils.EMPTY, getZeppelinhubWebsocketUri(conf), token);
+    //TODO(khalid): add reading zeppelin ws uri
+    String tempZeppelinUri = "ws://localhost:8080";
+    websocketClient = Client.initialize(tempZeppelinUri, getZeppelinhubWebsocketUri(conf), token);
     websocketClient.start();
   }
   
