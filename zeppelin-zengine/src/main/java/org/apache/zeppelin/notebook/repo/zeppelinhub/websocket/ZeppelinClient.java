@@ -18,22 +18,30 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
+/**
+ * Zeppelin websocket client.
+ *
+ */
 public class ZeppelinClient {
   private static final Logger LOG = LoggerFactory.getLogger(ZeppelinClient.class);
-  private Client baseClient;
-  private URI zeppelinUri;
-  public WebSocketClient wsClient;
-  public URI zeppelinWebsocketUrl;
+  private final URI zeppelinWebsocketUrl;
+  private final String zeppelinhubToken;
+  private final WebSocketClient wsClient;
+  private static Gson gson;
   private ConcurrentHashMap<String, Session> zeppelinConnectionMap;
 
-  public static ZeppelinClient newInstance(String url, Client client) {
-    return new ZeppelinClient(url, client);
+  public static ZeppelinClient newInstance(String url, String token) {
+    return new ZeppelinClient(url, token);
   }
 
-  private ZeppelinClient(String zeppelinUri, Client client) {
-    this.baseClient = client;
+  private ZeppelinClient(String zeppelinUri, String token) {
     zeppelinWebsocketUrl = URI.create(zeppelinUri);
-    WebSocketClient wsClient = new WebSocketClient();
+    zeppelinhubToken = token;
+    wsClient = new WebSocketClient();
+    gson = new Gson();
   }
 
   public void start() {
@@ -60,6 +68,39 @@ public class ZeppelinClient {
     }
   }
 
+  public String serialize(Message zeppelinMsg) {
+    // TODO(khalid): handle authentication
+    String msg = gson.toJson(zeppelinMsg);
+    return msg;
+  }
+
+  public Message deserialize(String zeppelinMessage) {
+    if (StringUtils.isBlank(zeppelinMessage)) {
+      return null;
+    }
+    Message msg;
+    try {
+      msg = gson.fromJson(zeppelinMessage, Message.class);
+    } catch (JsonSyntaxException ex) {
+      LOG.error("Cannot deserialize zeppelin message", ex);
+      msg = null;
+    }
+    return msg;
+  }
+
+  public void send(Message msg, String noteId) {
+    Session noteSession = getZeppelinConnection(noteId);
+    if (!isSessionOpen(noteSession)) {
+      LOG.error("Cannot open websocket connection to Zeppelin note {}", noteId);
+      return;
+    }
+    noteSession.getRemote().sendStringByFuture(serialize(msg));
+  }
+
+  private boolean isSessionOpen(Session session) {
+    return (session != null) && (session.isOpen());
+  }
+
   /* per notebook based ws connection, returns null if can't connect */
   public Session getZeppelinConnection(String noteId) {
     if (StringUtils.isBlank(noteId)) {
@@ -78,7 +119,7 @@ public class ZeppelinClient {
     Future<Session> future = null;
     Session session = null;
     try {
-      future = wsClient.connect(socket, zeppelinUri, request);
+      future = wsClient.connect(socket, zeppelinWebsocketUrl, request);
       session = future.get();
     } catch (IOException | InterruptedException | ExecutionException e) {
       LOG.error("Couldn't establish websocket connection to Zeppelin ", e);
@@ -92,7 +133,7 @@ public class ZeppelinClient {
       zeppelinConnectionMap.put(noteId, session);
     }
     //TODO(khalid): clean log later
-    LOG.info("Create Zeppelin websocket connection {} {}", zeppelinUri.toString(), noteId);
+    LOG.info("Create Zeppelin websocket connection {} {}", zeppelinWebsocketUrl, noteId);
     return session;
   }
 
@@ -100,29 +141,38 @@ public class ZeppelinClient {
    * Close and remove ZeppelinConnection
    */
   public void removeZeppelinConnection(String noteId) {
-      if (zeppelinConnectionMap.containsKey(noteId)) {
-        Session conn = zeppelinConnectionMap.get(noteId);
-        if (conn.isOpen()) {
-          conn.close();
-        }
-        zeppelinConnectionMap.remove(noteId);
+    if (zeppelinConnectionMap.containsKey(noteId)) {
+      Session conn = zeppelinConnectionMap.get(noteId);
+      if (conn.isOpen()) {
+        conn.close();
       }
-    //TODO(khalid): clean log later
+      zeppelinConnectionMap.remove(noteId);
+    }
+    // TODO(khalid): clean log later
     LOG.info("Removed Zeppelin ws connection for the following note {}", noteId);
   }
 
   private void sendToHub(ZeppelinWebsocket socket, String msgFromZeppelin) {
     Map<String, String> meta = new HashMap<String, String>();
-    meta.put("token", baseClient.token);
+    meta.put("token", zeppelinhubToken);
     meta.put("noteId", socket.noteId);
-    Message zeppelinMsg = baseClient.deserialize(msgFromZeppelin);
+    Message zeppelinMsg = deserialize(msgFromZeppelin);
     if (zeppelinMsg == null) {
       return;
     }
     ZeppelinhubMessage hubMsg = ZeppelinhubMessage.newMessage(zeppelinMsg, meta);
-    baseClient.zeppelinhubClient.send(hubMsg.serialize());
+    Client client = Client.getInstance();
+    if (client == null) {
+      LOG.warn("Client isn't initialized yet");
+      return;
+    }
+    Client.getInstance().relayToHub(hubMsg.serialize());
   }
 
+  /**
+   * Zeppelin websocket listener class.
+   *
+   */
   public class ZeppelinWebsocket implements WebSocketListener {
     public Session connection;
     public String noteId;

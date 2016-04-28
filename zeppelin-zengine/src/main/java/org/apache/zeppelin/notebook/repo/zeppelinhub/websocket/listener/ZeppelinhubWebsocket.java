@@ -1,5 +1,6 @@
 package org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.listener;
 
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.Client;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.utils.ZeppelinhubUtils;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
@@ -49,7 +50,11 @@ public class ZeppelinhubWebsocket implements WebSocketListener {
   public void onWebSocketText(String message) {
     LOG.info("Got msg {}", message);
     if (isSessionOpen()) {
-      // do something.
+      // handle message from ZeppelinHub.
+      Client client = Client.getInstance();
+      if (client != null) {
+        client.handleMsgFromZeppelinHub(message);
+      }
     }
   }
 
