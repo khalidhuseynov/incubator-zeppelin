@@ -9,6 +9,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.protocol.ZeppelinhubMessage;
+import org.apache.zeppelin.notebook.socket.Message;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -113,12 +115,12 @@ public class ZeppelinClient {
     Map<String, String> meta = new HashMap<String, String>();
     meta.put("token", baseClient.token);
     meta.put("noteId", socket.noteId);
-    //TODO(khalid): refactor to general send
-    // ZeppelinHubMessage msgToSendHub = new ZeppelinHubMessage(
-    // msgFromZeppelin.getOp(), msgFromZeppelin.getData(), meta);
-    // parentClient.getHubConnection().sendMessage(parentClient.serialize(msgToSendHub));
-    // LOG.info("Send {} message from Zeppelin to Hub : ",
-    // msgFromZeppelin.op.toString());
+    Message zeppelinMsg = baseClient.deserialize(msgFromZeppelin);
+    if (zeppelinMsg == null) {
+      return;
+    }
+    ZeppelinhubMessage hubMsg = ZeppelinhubMessage.newMessage(zeppelinMsg, meta);
+    baseClient.zeppelinhubClient.send(hubMsg.serialize());
   }
 
   public class ZeppelinWebsocket implements WebSocketListener {
