@@ -13,6 +13,7 @@ import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.listener.Zeppelin
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.scheduler.SchedulerService;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.scheduler.ZeppelinHubHeartbeat;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.session.ZeppelinhubSession;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
@@ -109,7 +110,8 @@ public class ZeppelinhubClient {
   }
   
   private WebSocketClient createNewWebsocketClient() {
-    WebSocketClient client = new WebSocketClient();
+    SslContextFactory sslContextFactory = new SslContextFactory();
+    WebSocketClient client = new WebSocketClient(sslContextFactory);
     client.setMaxTextMessageBufferSize(MAXIMUN_TEXT_SIZE);
     client.setMaxIdleTimeout(CONNECTION_IDLE_TIME);
     return client;
