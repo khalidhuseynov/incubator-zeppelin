@@ -28,7 +28,6 @@ public class Client {
   private final ZeppelinhubClient zeppelinhubClient;
   private final ZeppelinClient zeppelinClient;
   private static Gson gson;
-
   private static Client instance = null;
 
   public static Client initialize(String zeppelinUri, String zeppelinhubUri, String token) {
@@ -46,7 +45,7 @@ public class Client {
     LOG.debug("Init Client");
     gson = new Gson();
     zeppelinhubClient = ZeppelinhubClient.newInstance(zeppelinhubUri, token);
-    zeppelinClient = ZeppelinClient.newInstance(zeppelinUri, token);
+    zeppelinClient = ZeppelinClient.initialize(zeppelinUri, token);
   }
 
   public void start() {
