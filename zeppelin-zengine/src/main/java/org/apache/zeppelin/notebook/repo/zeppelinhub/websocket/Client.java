@@ -44,7 +44,7 @@ public class Client {
   private Client(String zeppelinUri, String zeppelinhubUri, String token) {
     LOG.debug("Init Client");
     gson = new Gson();
-    zeppelinhubClient = ZeppelinhubClient.newInstance(zeppelinhubUri, token);
+    zeppelinhubClient = ZeppelinhubClient.initialize(zeppelinhubUri, token);
     zeppelinClient = ZeppelinClient.initialize(zeppelinUri, token);
   }
 
