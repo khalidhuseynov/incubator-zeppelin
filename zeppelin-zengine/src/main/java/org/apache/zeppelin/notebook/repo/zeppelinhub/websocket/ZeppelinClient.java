@@ -9,6 +9,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.listener.ZeppelinWebsocket;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.protocol.ZeppelinhubMessage;
 import org.apache.zeppelin.notebook.socket.Message;
 import org.eclipse.jetty.websocket.api.Session;
@@ -32,13 +33,21 @@ public class ZeppelinClient {
   private final WebSocketClient wsClient;
   private static Gson gson;
   private ConcurrentHashMap<String, Session> zeppelinConnectionMap;
+  private static ZeppelinClient instance = null;
 
-  public static ZeppelinClient newInstance(String url, String token) {
-    return new ZeppelinClient(url, token);
+  public static ZeppelinClient initialize(String zeppelinUrl, String token) {
+    if (instance == null) {
+      instance = new ZeppelinClient(zeppelinUrl, token);
+    }
+    return instance;
   }
 
-  private ZeppelinClient(String zeppelinUri, String token) {
-    zeppelinWebsocketUrl = URI.create(zeppelinUri);
+  public static ZeppelinClient getInstance() {
+    return instance;
+  }
+
+  private ZeppelinClient(String zeppelinUrl, String token) {
+    zeppelinWebsocketUrl = URI.create(zeppelinUrl);
     zeppelinhubToken = token;
     wsClient = new WebSocketClient();
     gson = new Gson();
@@ -137,6 +146,23 @@ public class ZeppelinClient {
     return session;
   }
 
+  public void handleMsgFromZeppelin(String message, String noteId) {
+    Map<String, String> meta = new HashMap<String, String>();
+    meta.put("token", zeppelinhubToken);
+    meta.put("noteId", noteId);
+    Message zeppelinMsg = deserialize(message);
+    if (zeppelinMsg == null) {
+      return;
+    }
+    ZeppelinhubMessage hubMsg = ZeppelinhubMessage.newMessage(zeppelinMsg, meta);
+    Client client = Client.getInstance();
+    if (client == null) {
+      LOG.warn("Client isn't initialized yet");
+      return;
+    }
+    client.relayToHub(hubMsg.serialize());
+  }
+
   /**
    * Close and remove ZeppelinConnection
    */
@@ -150,70 +176,6 @@ public class ZeppelinClient {
     }
     // TODO(khalid): clean log later
     LOG.info("Removed Zeppelin ws connection for the following note {}", noteId);
-  }
-
-  private void sendToHub(ZeppelinWebsocket socket, String msgFromZeppelin) {
-    Map<String, String> meta = new HashMap<String, String>();
-    meta.put("token", zeppelinhubToken);
-    meta.put("noteId", socket.noteId);
-    Message zeppelinMsg = deserialize(msgFromZeppelin);
-    if (zeppelinMsg == null) {
-      return;
-    }
-    ZeppelinhubMessage hubMsg = ZeppelinhubMessage.newMessage(zeppelinMsg, meta);
-    Client client = Client.getInstance();
-    if (client == null) {
-      LOG.warn("Client isn't initialized yet");
-      return;
-    }
-    Client.getInstance().relayToHub(hubMsg.serialize());
-  }
-
-  /**
-   * Zeppelin websocket listener class.
-   *
-   */
-  public class ZeppelinWebsocket implements WebSocketListener {
-    public Session connection;
-    public String noteId;
-
-    public ZeppelinWebsocket(String noteId) {
-      this.noteId = noteId;
-    }
-
-    @Override
-    public void onWebSocketBinary(byte[] arg0, int arg1, int arg2) {
-
-    }
-
-    @Override
-    public void onWebSocketClose(int code, String message) {
-      LOG.info("Zeppelin connection closed with code: {}, message: {}", code, message);
-      // parentClient.removeConnMap(noteId);
-    }
-
-    @Override
-    public void onWebSocketConnect(Session session) {
-      LOG.info("Zeppelin connection opened");
-      this.connection = session;
-    }
-
-    @Override
-    public void onWebSocketError(Throwable e) {
-      LOG.warn("Zeppelin socket connection error ", e);
-    }
-
-    @Override
-    public void onWebSocketText(String data) {
-      LOG.debug("Zeppelin client received Message: " + data);
-      // propagate to ZeppelinHub
-      try {
-        sendToHub(this, data);
-      } catch (Exception e) {
-        LOG.error("Failed to send message to ZeppelinHub: ", e);
-      }
-    }
-
   }
 
 }
