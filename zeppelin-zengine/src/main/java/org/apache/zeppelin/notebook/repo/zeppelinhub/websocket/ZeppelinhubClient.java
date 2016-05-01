@@ -36,14 +36,22 @@ public class ZeppelinhubClient {
   private static final int MB = 1048576;
   private static final int MAXIMUN_TEXT_SIZE = 64 * MB;
   private static final long CONNECTION_IDLE_TIME = TimeUnit.SECONDS.toMillis(30);
+  private static ZeppelinhubClient instance = null;
   
   private SchedulerService schedulerService;
   private ZeppelinhubSession zeppelinhubSession;
-  
-  public static ZeppelinhubClient newInstance(String url, String token) {
-    return new ZeppelinhubClient(url, token);
+
+  public static ZeppelinhubClient initialize(String zeppelinhubUrl, String token) {
+    if (instance == null) {
+      instance = new ZeppelinhubClient(zeppelinhubUrl, token);
+    }
+    return instance;
   }
-  
+
+  public static ZeppelinhubClient getInstance() {
+    return instance;
+  }
+
   public void start() {
     try {
       client.start();
