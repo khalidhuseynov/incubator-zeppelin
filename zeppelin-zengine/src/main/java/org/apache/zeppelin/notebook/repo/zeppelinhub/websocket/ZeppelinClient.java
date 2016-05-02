@@ -14,7 +14,6 @@ import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.protocol.Zeppelin
 import org.apache.zeppelin.notebook.socket.Message;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.slf4j.Logger;
@@ -52,6 +51,7 @@ public class ZeppelinClient {
     zeppelinhubToken = token;
     wsClient = createNewWebsocketClient();
     gson = new Gson();
+    zeppelinConnectionMap = new ConcurrentHashMap<>();
   }
 
   private WebSocketClient createNewWebsocketClient() {
