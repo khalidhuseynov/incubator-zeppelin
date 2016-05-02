@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.listener.ZeppelinWebsocket;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.protocol.ZeppelinhubMessage;
 import org.apache.zeppelin.notebook.socket.Message;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
@@ -49,8 +50,15 @@ public class ZeppelinClient {
   private ZeppelinClient(String zeppelinUrl, String token) {
     zeppelinWebsocketUrl = URI.create(zeppelinUrl);
     zeppelinhubToken = token;
-    wsClient = new WebSocketClient();
+    wsClient = createNewWebsocketClient();
     gson = new Gson();
+  }
+
+  private WebSocketClient createNewWebsocketClient() {
+    SslContextFactory sslContextFactory = new SslContextFactory();
+    WebSocketClient client = new WebSocketClient(sslContextFactory);
+    //TODO(khalid): other client settings
+    return client;
   }
 
   public void start() {
