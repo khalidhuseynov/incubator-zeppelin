@@ -1,6 +1,5 @@
 package org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.listener;
 
-import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.Client;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.ZeppelinClient;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketListener;
