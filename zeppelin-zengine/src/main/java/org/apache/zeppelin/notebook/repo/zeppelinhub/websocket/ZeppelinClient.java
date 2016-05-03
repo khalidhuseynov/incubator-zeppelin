@@ -147,11 +147,22 @@ public class ZeppelinClient {
       session.close();
       session = zeppelinConnectionMap.get(noteId);
     } else {
+      String getNote = serialize(zeppelinGetNoteMsg(noteId));
+      //TODO(khalid): may need to check return whether successful
+      session.getRemote().sendStringByFuture(getNote);
       zeppelinConnectionMap.put(noteId, session);
     }
     //TODO(khalid): clean log later
     LOG.info("Create Zeppelin websocket connection {} {}", zeppelinWebsocketUrl, noteId);
     return session;
+  }
+
+  private Message zeppelinGetNoteMsg(String noteId) {
+    Message getNoteMsg = new Message(Message.OP.GET_NOTE);
+    HashMap<String, Object> data = new HashMap<String, Object>();
+    data.put("id", noteId);
+    getNoteMsg.data = data;
+    return getNoteMsg;
   }
 
   public void handleMsgFromZeppelin(String message, String noteId) {
