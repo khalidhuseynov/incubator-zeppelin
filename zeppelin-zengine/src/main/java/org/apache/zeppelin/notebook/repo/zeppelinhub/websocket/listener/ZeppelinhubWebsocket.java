@@ -16,7 +16,6 @@ public class ZeppelinhubWebsocket implements WebSocketListener {
   private final String token;
   
   private ZeppelinhubWebsocket(String token) {
-    super();
     this.token = token;
   }
 
