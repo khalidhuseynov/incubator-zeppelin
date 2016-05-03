@@ -43,7 +43,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
     zeppelinhubHandler = ZeppelinhubRestApiHandler.newInstance(zeppelinHubUrl, token);
 
     //TODO(khalid): add reading zeppelin ws uri
-    String tempZeppelinUri = "ws://localhost:8080";
+    String tempZeppelinUri = "ws://localhost:8080/ws";
     websocketClient = Client.initialize(tempZeppelinUri, getZeppelinhubWebsocketUri(conf), token);
     websocketClient.start();
   }
