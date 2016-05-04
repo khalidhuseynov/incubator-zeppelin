@@ -157,20 +157,20 @@ public class ZeppelinhubClient {
       return;
     }
     if (ZeppelinhubUtils.isHubOp(op)) {
-      handleHubOpMsg(ZeppelinhubUtils.stringToHubOp(op), hubMsg);
+      handleHubOpMsg(ZeppelinhubUtils.stringToHubOp(op), hubMsg, message);
     } else if (ZeppelinhubUtils.isZeppelinOp(op)) {
       forwardToZeppelin(ZeppelinhubUtils.stringToZeppelinOp(op), hubMsg);
     }
   }
 
-  private void handleHubOpMsg(ZeppelinHubOp op, ZeppelinhubMessage msg) {
+  private void handleHubOpMsg(ZeppelinHubOp op, ZeppelinhubMessage hubMsg, String msg) {
     if (op == null || msg.equals(ZeppelinhubMessage.EMPTY)) {
       LOG.error("Cannot handle empty op or msg");
       return;
     }
     switch (op) {
         case RUN_NOTEBOOK:
-          runAllParagraph(msg.meta.get("noteId"), msg);
+          runAllParagraph(hubMsg.meta.get("noteId"), msg);
           break;
         case PONG:
           // do nothing
@@ -197,7 +197,7 @@ public class ZeppelinhubClient {
     client.relayToZeppelin(zeppelinMsg, hubMsg.meta.get("noteId"));
   }
 
-  private void runAllParagraph(String noteId, ZeppelinhubMessage hubMsg) {
+  private void runAllParagraph(String noteId, String hubMsg) {
     LOG.info("Running paragraph with noteId {}", noteId);
     try {
       JSONObject data = new JSONObject(hubMsg);
