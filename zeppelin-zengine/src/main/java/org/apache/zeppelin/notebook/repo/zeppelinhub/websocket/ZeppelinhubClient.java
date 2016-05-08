@@ -72,6 +72,7 @@ public class ZeppelinhubClient {
     zeppelinhubToken = token;
     schedulerService = SchedulerService.create(10);
     gson = new Gson();
+    LOG.info("Initialized ZeppelinHub websocket client on {}", zeppelinhubWebsocketUrl);
   }
 
   public void start() {

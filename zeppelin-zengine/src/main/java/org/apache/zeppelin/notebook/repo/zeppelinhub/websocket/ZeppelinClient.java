@@ -52,6 +52,7 @@ public class ZeppelinClient {
     wsClient = createNewWebsocketClient();
     gson = new Gson();
     zeppelinConnectionMap = new ConcurrentHashMap<>();
+    LOG.info("Initialized Zeppelin websocket client on {}", zeppelinWebsocketUrl);
   }
 
   private WebSocketClient createNewWebsocketClient() {
