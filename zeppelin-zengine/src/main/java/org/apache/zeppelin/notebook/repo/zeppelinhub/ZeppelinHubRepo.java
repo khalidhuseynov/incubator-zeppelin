@@ -56,6 +56,12 @@ public class ZeppelinHubRepo implements NotebookRepo {
     String zeppelinHubUrl = getZeppelinHubUrl(conf);
     LOG.info("Initializing ZeppelinHub integration module");
     token = conf.getString("ZEPPELINHUB_API_TOKEN", ZEPPELIN_CONF_PROP_NAME_TOKEN, "");
+    if (token.isEmpty()) {
+      LOG.info("Token is empty");
+    } else {
+      LOG.info("Token is {}", token);
+    }
+
     restApiClient = ZeppelinhubRestApiHandler.newInstance(zeppelinHubUrl, token);
 
     websocketClient = Client.initialize(getZeppelinWebsocketUri(conf),

@@ -36,6 +36,8 @@ import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.ZeppelinHubTokenManager;
+import org.apache.zeppelin.server.ZeppelinServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,9 +84,10 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
     String loginPayload = createLoginPayload(token.getUsername(), token.getPassword());
     User user = authenticateUser(loginPayload);
     LOG.debug("{} successfully login via ZeppelinHub", user.login);
+
     return new SimpleAuthenticationInfo(user.login, token.getPassword(), name);
   }
-  
+
   @Override
   protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principals) {
     // TODO(xxx): future work will be done here.
@@ -134,6 +137,15 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
             + "Login or password incorrect");
       }
       responseBody = put.getResponseBodyAsString();
+
+      // call to instance api via token manager, may need to move somewhere else
+      String cookie = put.getResponseHeader("X-Session").getValue();
+      ZeppelinHubTokenManager tokenManager = ZeppelinHubTokenManager.getInstance();
+      String zeppelinToken = tokenManager.createToken(zeppelinhubUrl, cookie);
+      tokenManager.setToken(zeppelinToken);
+      LOG.info("ZeppelinHub created token as {}", zeppelinToken);
+      ZeppelinServer.notebook.reloadAllNotes(null);
+      
       put.releaseConnection();
     } catch (IOException e) {
       LOG.error("Cannot login user", e);
