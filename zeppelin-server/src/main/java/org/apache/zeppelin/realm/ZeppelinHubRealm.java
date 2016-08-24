@@ -36,6 +36,7 @@ import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.model.UserSessionContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +125,7 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
   protected User authenticateUser(String requestBody) {
     PutMethod put = new PutMethod(Joiner.on("/").join(zeppelinhubUrl, USER_LOGIN_API_ENDPOINT));
     String responseBody = StringUtils.EMPTY;
+    String userSession = StringUtils.EMPTY;
     try {
       put.setRequestEntity(new StringRequestEntity(requestBody, JSON_CONTENT_TYPE, UTF_8_ENCODING));
       int statusCode = httpClient.executeMethod(put);
@@ -134,6 +136,7 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
             + "Login or password incorrect");
       }
       responseBody = put.getResponseBodyAsString();
+      userSession = put.getResponseHeader("X-session").getValue();
       put.releaseConnection();
     } catch (IOException e) {
       LOG.error("Cannot login user", e);
@@ -147,6 +150,7 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
       LOG.error("Cannot deserialize ZeppelinHub response to User instance", e);
       throw new AuthenticationException("Cannot login to ZeppelinHub");
     }
+    UserSessionContainer.instance.setSession(account.login, userSession);
     return account;
   }
 
