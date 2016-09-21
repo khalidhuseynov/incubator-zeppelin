@@ -139,15 +139,7 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
             + "Login or password incorrect");
       }
       responseBody = put.getResponseBodyAsString();
-
       userSession = put.getResponseHeader("X-session").getValue();
-
-      // call to instance api via token manager, may need to move somewhere else
-      ZeppelinHubTokenManager tokenManager = ZeppelinHubTokenManager.getInstance();
-      String zeppelinToken = tokenManager.createToken(zeppelinhubUrl, userSession);
-      tokenManager.setToken(zeppelinToken);
-      LOG.info("ZeppelinHub created token as {}", zeppelinToken);
-      ZeppelinServer.notebook.reloadAllNotes(null);
 
       put.releaseConnection();
     } catch (IOException e) {
@@ -155,6 +147,8 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
       throw new AuthenticationException(e.getMessage());
     }
     
+    validateInstance(userSession);
+
     User account = null;
     try {
       account = gson.fromJson(responseBody, User.class);
@@ -163,7 +157,28 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
       throw new AuthenticationException("Cannot login to ZeppelinHub");
     }
     UserSessionContainer.instance.setSession(account.login, userSession);
+    
+    try {
+      ZeppelinServer.notebook
+          .reloadAllNotes(new org.apache.zeppelin.user.AuthenticationInfo(account.login));
+    } catch (IOException e) {
+      LOG.error("Failed to reload repository on login for {}", account.login, e);
+    }
     return account;
+  }
+
+  private void validateInstance(String userSession) {
+    // call to instance api via token manager, may need to move somewhere else
+    ZeppelinHubTokenManager tokenManager = ZeppelinHubTokenManager.getInstance();
+    String zeppelinToken = tokenManager.getToken();
+    if (StringUtils.isEmpty(zeppelinToken)) {
+      //TODO(khalid): assign to user as well
+      zeppelinToken = tokenManager.createToken(zeppelinhubUrl, userSession);
+      tokenManager.setToken(zeppelinToken);
+    }
+    //TODO(khalid): refactor this part to more RESTful
+    tokenManager.confirmInstanceExists(zeppelinhubUrl, zeppelinToken, userSession);
+    LOG.info("ZeppelinHub created token as {}", zeppelinToken);
   }
 
   /**

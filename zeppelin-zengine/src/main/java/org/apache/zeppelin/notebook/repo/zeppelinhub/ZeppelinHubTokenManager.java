@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.PostMethod;
+import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.lang.StringUtils;
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
@@ -26,7 +27,9 @@ public class ZeppelinHubTokenManager {
   private static final String ZEPPELIN_CONF_PROP_NAME_TOKEN = "zeppelinhub.api.token";
   private static final String TOKEN_API_ENDPOINT = "api/v1/zeppelin-instances";
   private String token;
-  
+  private final HttpClient httpClient = new HttpClient();;
+  private final Gson gson = new Gson();
+
   private ZeppelinHubTokenManager() {
     ZeppelinConfiguration conf = ZeppelinConfiguration.create();
     this.setToken(conf.getString("ZEPPELINHUB_API_TOKEN", ZEPPELIN_CONF_PROP_NAME_TOKEN, ""));
@@ -58,11 +61,9 @@ public class ZeppelinHubTokenManager {
     this.token = token;
   }
 
-  public String createToken(String zeppelinHubUrl, String cookie) {
-    HttpClient httpClient = new HttpClient();
-    Gson gson = new Gson();
-    PostMethod post = new PostMethod(Joiner.on("/").join(zeppelinHubUrl, TOKEN_API_ENDPOINT));
-    post.setRequestHeader("Cookie", "user_session=" + cookie);
+  public String createToken(String url, String userSession) {
+    PostMethod post = new PostMethod(Joiner.on("/").join(url, TOKEN_API_ENDPOINT));
+    post.setRequestHeader("Cookie", "user_session=" + userSession);
     String requestBody = createTokenPayload();
     String responseBody = StringUtils.EMPTY;
     try {
@@ -96,11 +97,46 @@ public class ZeppelinHubTokenManager {
     return token;
   }
 
+  public boolean confirmInstanceExists(String url, String token, String userSession) {
+    if (StringUtils.isEmpty(token) || StringUtils.isEmpty(userSession)) {
+      LOG.warn("Token or user session is empty while confirming instance on ZeppelinHub");
+      LOG.warn("Token {}, user session {}", token, userSession);
+      return false;
+    }
+    PutMethod put = new PutMethod(Joiner.on("/").join(url, TOKEN_API_ENDPOINT + "/confirm"));
+    put.setRequestHeader("Cookie", "user_session=" + userSession);
+    String requestBody = createInstanceTokenPayload(token);
+    String responseBody = StringUtils.EMPTY;
+    try {
+      put.setRequestEntity(new StringRequestEntity(requestBody, "application/json", "UTF-8"));
+      int statusCode = httpClient.executeMethod(put);
+      if (statusCode != HttpStatus.SC_OK) {
+        LOG.error("Cannot confirm token, HTTP status code is {} instead of 200 (OK)", statusCode);
+        //throw exception?
+        //post.releaseConnection();
+        return false;
+      }
+      responseBody = put.getResponseBodyAsString();
+      put.releaseConnection();
+    } catch (IOException e) {
+      LOG.error("Cannot create token", e);
+      //throw new AuthenticationException(e.getMessage());
+      return false;
+    }
+    LOG.info("Got reply from confirm instance api {}", responseBody);
+    return true;
+  }
+
   private String createTokenPayload() {
     StringBuilder sb = new StringBuilder("{\"name\":\"");
     String name = "khalid-zeppelin-1";
     String description = "username's Zeppelin";
     return sb.append(name).append("\", \"description\":\"").append(description).append("\"}")
         .toString();
+  }
+  
+  private String createInstanceTokenPayload(String token) {
+    StringBuilder sb = new StringBuilder("{\"token\":\"");
+    return sb.append(token).append("\"}").toString();
   }
 }
