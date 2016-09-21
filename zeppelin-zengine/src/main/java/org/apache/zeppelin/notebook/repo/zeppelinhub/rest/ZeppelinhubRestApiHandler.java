@@ -150,45 +150,48 @@ public class ZeppelinhubRestApiHandler {
     return new Gson().fromJson(data, listType);
   }
   
-  public String asyncGet(String token, String argument) throws IOException {
-    return sendToZeppelinHub(HttpMethod.GET, zepelinhubUrl + argument, token);
+  public String asyncGet(String token, String userSession, String argument) throws IOException {
+    return sendToZeppelinHub(HttpMethod.GET, zepelinhubUrl + argument, token, userSession);
   }
   
-  public String asyncPutWithResponseBody(String token, String url, String json) throws IOException {
+  public String asyncPutWithResponseBody(String token, String userSession, String url, String json)
+      throws IOException {
     if (StringUtils.isBlank(url) || StringUtils.isBlank(json)) {
       LOG.error("Empty note, cannot send it to zeppelinHub");
       throw new IOException("Cannot send emtpy note to zeppelinHub");
     }
-    return sendToZeppelinHub(HttpMethod.PUT, zepelinhubUrl + url, json, token);
+    return sendToZeppelinHub(HttpMethod.PUT, zepelinhubUrl + url, json, token, userSession);
   }
   
-  public void asyncPut(String token, String jsonNote) throws IOException {
+  public void asyncPut(String token, String userSession, String jsonNote) throws IOException {
     if (StringUtils.isBlank(jsonNote)) {
       LOG.error("Cannot save empty note/string to ZeppelinHub");
       return;
     }
-    sendToZeppelinHub(HttpMethod.PUT, zepelinhubUrl, jsonNote, token);
+    sendToZeppelinHub(HttpMethod.PUT, zepelinhubUrl, jsonNote, token, userSession);
   }
 
-  public void asyncDel(String token, String argument) throws IOException {
+  public void asyncDel(String token, String userSession, String argument) throws IOException {
     if (StringUtils.isBlank(argument)) {
       LOG.error("Cannot delete empty note from ZeppelinHub");
       return;
     }
-    sendToZeppelinHub(HttpMethod.DELETE, zepelinhubUrl + argument, token);
+    sendToZeppelinHub(HttpMethod.DELETE, zepelinhubUrl + argument, token, userSession);
   }
   
-  private String sendToZeppelinHub(HttpMethod method, String url, String token) throws IOException {
-    return sendToZeppelinHub(method, url, StringUtils.EMPTY, token);
-  }
-  
-  private String sendToZeppelinHub(HttpMethod method, String url, String json, String token)
+  private String sendToZeppelinHub(HttpMethod method, String url, String token, String userSession)
       throws IOException {
+    return sendToZeppelinHub(method, url, StringUtils.EMPTY, token, userSession);
+  }
+  
+  private String sendToZeppelinHub(HttpMethod method, String url, String json, String token,
+      String userSession) throws IOException {
     InputStreamResponseListener listener = new InputStreamResponseListener();
     Response response;
     String data;
 
-    Request request = client.newRequest(url).method(method).header(ZEPPELIN_TOKEN_HEADER, token);
+    Request request = client.newRequest(url).method(method).header(ZEPPELIN_TOKEN_HEADER, token).
+        header(USER_SESSION_HEADER, userSession);
     if ((method.equals(HttpMethod.PUT) || method.equals(HttpMethod.POST)) &&
         !StringUtils.isBlank(json)) {
       request.content(new StringContentProvider(json, "UTF-8"), "application/json;charset=UTF-8");

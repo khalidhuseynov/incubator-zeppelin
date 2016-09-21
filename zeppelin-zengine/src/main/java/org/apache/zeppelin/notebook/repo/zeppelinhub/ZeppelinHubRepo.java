@@ -155,7 +155,8 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (subject == null) {
       return Collections.emptyList();
     }
-    String response = restApiClient.asyncGet(token, "");
+    String userSession = getUserSession(subject);
+    String response = restApiClient.asyncGet(token, userSession, "");
     List<NoteInfo> notes = GSON.fromJson(response, new TypeToken<List<NoteInfo>>() {}.getType());
     if (notes == null) {
       return Collections.emptyList();
@@ -169,8 +170,8 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return EMPTY_NOTE;
     }
-    //String response = zeppelinhubHandler.get(noteId);
-    String response = restApiClient.asyncGet(token, noteId);
+    String userSession = getUserSession(subject);
+    String response = restApiClient.asyncGet(token, userSession, noteId);
     Note note = GSON.fromJson(response, Note.class);
     if (note == null) {
       return EMPTY_NOTE;
@@ -184,15 +185,16 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (note == null) {
       throw new IOException("Zeppelinhub failed to save empty note");
     }
+    String userSession = getUserSession(subject);
     String notebook = GSON.toJson(note);
-    restApiClient.asyncPut(token, notebook);
+    restApiClient.asyncPut(token, userSession, notebook);
     LOG.info("ZeppelinHub REST API saving note {} ", note.getId());
   }
 
   @Override
   public void remove(String noteId, AuthenticationInfo subject) throws IOException {
-    String userSession = UserSessionContainer.instance.getSession(subject.getUser());
-    restApiClient.asyncDel(token, noteId);
+    String userSession = getUserSession(subject);
+    restApiClient.asyncDel(token, userSession, noteId);
     LOG.info("ZeppelinHub REST API removing note {} ", noteId);
   }
 
@@ -207,9 +209,10 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return null;
     }
+    String userSession = getUserSession(subject);
     String endpoint = Joiner.on("/").join(noteId, "checkpoint");
     String content = GSON.toJson(ImmutableMap.of("message", checkpointMsg));
-    String response = restApiClient.asyncPutWithResponseBody(token, endpoint, content);
+    String response = restApiClient.asyncPutWithResponseBody(token, userSession, endpoint, content);
     
     return GSON.fromJson(response, Revision.class);
   }
@@ -219,8 +222,9 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId) || StringUtils.isBlank(revId)) {
       return EMPTY_NOTE;
     }
+    String userSession = getUserSession(subject);
     String endpoint = Joiner.on("/").join(noteId, "checkpoint", revId);
-    String response = restApiClient.asyncGet(token, endpoint);
+    String response = restApiClient.asyncGet(token, userSession, endpoint);
     Note note = GSON.fromJson(response, Note.class);
     if (note == null) {
       return EMPTY_NOTE;
@@ -234,10 +238,11 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return Collections.emptyList();
     }
+    String userSession = getUserSession(subject);
     String endpoint = Joiner.on("/").join(noteId, "checkpoint");
     List<Revision> history = Collections.emptyList();
     try {
-      String response = restApiClient.asyncGet(token, endpoint);
+      String response = restApiClient.asyncGet(token, userSession, endpoint);
       history = GSON.fromJson(response, new TypeToken<List<Revision>>(){}.getType());
     } catch (IOException e) {
       LOG.error("Cannot get note history", e);
@@ -245,4 +250,14 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return history;
   }
 
+  private String getUserSession(AuthenticationInfo subject) {
+    String userSession;
+    if (subject == null) {
+      LOG.warn("ZeppelinHub repo subject is empty");
+      userSession = StringUtils.EMPTY;
+    } else {
+      userSession = UserSessionContainer.instance.getSession(subject.getUser());
+    }
+    return userSession;
+  }
 }
