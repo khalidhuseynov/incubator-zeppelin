@@ -57,8 +57,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
 
   private String token;
   private ZeppelinhubRestApiHandler restApiClient;
-
-  private ConcurrentMap<String, String> userTokens = new ConcurrentHashMap<String, String>();
   
   public ZeppelinHubRepo(ZeppelinConfiguration conf) {
     String zeppelinHubUrl = getZeppelinHubUrl(conf);
@@ -149,31 +147,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return zeppelinhubUrl;
   }
   
-  private String getUserDefaultZeppelinInstanceToken(String ticket) throws IOException {
-    if (StringUtils.isBlank(ticket)) {
-      return "";
-    }
-    List<Instance> instances = restApiClient.asyncGetInstances(ticket);
-    token = instances.get(0).token;
-    return token;
-  }
-
-  private String getUserToken(String principal) {
-    String token = userTokens.get(principal);
-    if (StringUtils.isBlank(token)) {
-      String ticket = UserSessionContainer.instance.getSession(principal);
-      try {
-        token = getUserDefaultZeppelinInstanceToken(ticket);
-        userTokens.putIfAbsent(principal, token);
-      } catch (IOException e) {
-        LOG.error("Cannot get user token", e);
-        token = StringUtils.EMPTY;
-      }
-    }
-    
-    return token;
-  }
-  
   @Override
   public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
     if (StringUtils.isBlank(token)) {
@@ -182,7 +155,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (subject == null) {
       return Collections.emptyList();
     }
-    String token = getUserToken(subject.getUser());
     String response = restApiClient.asyncGet(token, "");
     List<NoteInfo> notes = GSON.fromJson(response, new TypeToken<List<NoteInfo>>() {}.getType());
     if (notes == null) {
@@ -198,7 +170,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
       return EMPTY_NOTE;
     }
     //String response = zeppelinhubHandler.get(noteId);
-    String token = getUserToken(subject.getUser());
     String response = restApiClient.asyncGet(token, noteId);
     Note note = GSON.fromJson(response, Note.class);
     if (note == null) {
@@ -214,8 +185,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
       throw new IOException("Zeppelinhub failed to save empty note");
     }
     String notebook = GSON.toJson(note);
-    String token = getUserToken(subject.getUser());
-    //restApiClient.asyncPut(notebook);
     restApiClient.asyncPut(token, notebook);
     LOG.info("ZeppelinHub REST API saving note {} ", note.getId());
   }
@@ -223,7 +192,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
   @Override
   public void remove(String noteId, AuthenticationInfo subject) throws IOException {
     String userSession = UserSessionContainer.instance.getSession(subject.getUser());
-    String token = getUserDefaultZeppelinInstanceToken(userSession);
     restApiClient.asyncDel(token, noteId);
     LOG.info("ZeppelinHub REST API removing note {} ", noteId);
   }
@@ -239,7 +207,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return null;
     }
-    String token = getUserToken(subject.getUser());
     String endpoint = Joiner.on("/").join(noteId, "checkpoint");
     String content = GSON.toJson(ImmutableMap.of("message", checkpointMsg));
     String response = restApiClient.asyncPutWithResponseBody(token, endpoint, content);
@@ -252,7 +219,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId) || StringUtils.isBlank(revId)) {
       return EMPTY_NOTE;
     }
-    String token = getUserToken(subject.getUser());
     String endpoint = Joiner.on("/").join(noteId, "checkpoint", revId);
     String response = restApiClient.asyncGet(token, endpoint);
     Note note = GSON.fromJson(response, Note.class);
@@ -268,7 +234,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return Collections.emptyList();
     }
-    String token = getUserToken(subject.getUser());
     String endpoint = Joiner.on("/").join(noteId, "checkpoint");
     List<Revision> history = Collections.emptyList();
     try {
