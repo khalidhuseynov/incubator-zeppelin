@@ -92,6 +92,10 @@ public class NotebookRepoSync implements NotebookRepo {
       LOG.info("No storages could be initialized, using default {} storage", defaultStorage);
       initializeDefaultStorage(conf);
     }
+    //syncOnStart();
+  }
+
+  private void syncOnStart() {
     if (getRepoCount() > 1) {
       try {
         AuthenticationInfo subject = new AuthenticationInfo("anonymous");
