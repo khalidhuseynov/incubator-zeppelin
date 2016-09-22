@@ -165,6 +165,8 @@ public class Notebook implements NoteEventListener {
       Set<String> owners = new HashSet<String>();
       owners.add(subject.getUser());
       notebookAuthorization.setOwners(note.getId(), owners);
+      notebookAuthorization.setReaders(note.getId(), owners);
+      notebookAuthorization.setWriters(note.getId(), owners);
     }
     notebookIndex.addIndexDoc(note);
     note.persist(subject);
