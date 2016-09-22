@@ -154,7 +154,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
       return "";
     }
     List<Instance> instances = restApiClient.asyncGetInstances(ticket);
-    token = instances.get(0).token;
+    String token = instances.get(0).token;
     LOG.info("The following instance has been assigned {} with token {}", instances.get(0).name,
         token);
     return token;
@@ -179,9 +179,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
   
   @Override
   public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
-    if (StringUtils.isBlank(token)) {
-      return Collections.emptyList();
-    }
     if (subject == null) {
       return Collections.emptyList();
     }
