@@ -18,10 +18,15 @@
 
 package org.apache.zeppelin.user;
 
+import org.apache.commons.lang.StringUtils;
+
 /***
  *
  */
 public class AuthenticationInfo {
+  
+  public static final AuthenticationInfo EMPTY = new AuthenticationInfo(StringUtils.EMPTY);
+  
   String user;
   String ticket;
   UserCredentials userCredentials;

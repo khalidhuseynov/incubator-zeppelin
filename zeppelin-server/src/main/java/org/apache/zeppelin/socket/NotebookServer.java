@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.servlet.http.HttpServletRequest;
@@ -69,8 +70,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 import org.quartz.SchedulerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -1514,7 +1514,7 @@ public class NotebookServer extends WebSocketServlet implements
         try {
           //TODO(khalid): may change interface for JobListener and pass subject from interpreter
           //for this run should be user aware (interpreter)
-          note.persist(new AuthenticationInfo(StringUtils.EMPTY));
+          note.persist(AuthenticationInfo.EMPTY);
         } catch (IOException e) {
           LOG.error(e.toString(), e);
         }
