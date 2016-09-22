@@ -1513,7 +1513,8 @@ public class NotebookServer extends WebSocketServlet implements
         LOG.info("Job {} is finished", job.getId());
         try {
           //TODO(khalid): may change interface for JobListener and pass subject from interpreter
-          note.persist(null);
+          //for this run should be user aware (interpreter)
+          note.persist(new AuthenticationInfo(StringUtils.EMPTY));
         } catch (IOException e) {
           LOG.error(e.toString(), e);
         }
