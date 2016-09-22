@@ -147,20 +147,24 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return zeppelinhubUrl;
   }
   
-  private String getUserDefaultZeppelinInstanceToken(String ticket) throws IOException {
+  private String getDefaultZeppelinInstanceToken(String ticket) throws IOException {
     if (StringUtils.isBlank(ticket)) {
-      return "";
+      return StringUtils.EMPTY;
     }
     List<Instance> instances = restApiClient.asyncGetInstances(ticket);
-    return instances.get(0).token;
+    String token = instances.get(0).token;
+    LOG.debug("The following instance has been assigned {} with token {}", instances.get(0).name,
+        token);
+    return token;
   }
 
   private String getUserToken(String principal) {
     String token = userTokens.get(principal);
+    LOG.info("Getting user token for {}", principal);
     if (StringUtils.isBlank(token)) {
       String ticket = UserSessionContainer.instance.getSession(principal);
       try {
-        token = getUserDefaultZeppelinInstanceToken(ticket);
+        token = getDefaultZeppelinInstanceToken(ticket);
         userTokens.putIfAbsent(principal, token);
       } catch (IOException e) {
         LOG.error("Cannot get user token", e);
@@ -191,7 +195,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return EMPTY_NOTE;
     }
-    //String response = zeppelinhubHandler.get(noteId);
     String token = getUserToken(subject.getUser());
     String response = restApiClient.asyncGet(token, noteId);
     Note note = GSON.fromJson(response, Note.class);
@@ -217,7 +220,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
   @Override
   public void remove(String noteId, AuthenticationInfo subject) throws IOException {
     String userSession = UserSessionContainer.instance.getSession(subject.getUser());
-    String token = getUserDefaultZeppelinInstanceToken(userSession);
+    String token = getDefaultZeppelinInstanceToken(userSession);
     restApiClient.asyncDel(token, noteId);
     LOG.info("ZeppelinHub REST API removing note {} ", noteId);
   }

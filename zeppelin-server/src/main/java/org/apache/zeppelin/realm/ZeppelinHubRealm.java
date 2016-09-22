@@ -37,6 +37,7 @@ import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.realm.AuthorizingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.UserSessionContainer;
+import org.apache.zeppelin.server.ZeppelinServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,6 +139,7 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
       responseBody = put.getResponseBodyAsString();
       userSession = put.getResponseHeader("X-session").getValue();
       put.releaseConnection();
+      
     } catch (IOException e) {
       LOG.error("Cannot login user", e);
       throw new AuthenticationException(e.getMessage());
@@ -151,6 +153,9 @@ public class ZeppelinHubRealm extends AuthorizingRealm {
       throw new AuthenticationException("Cannot login to ZeppelinHub");
     }
     UserSessionContainer.instance.setSession(account.login, userSession);
+   
+    ZeppelinServer.notebookWsServer.broadcastReloadedNoteList(
+        new org.apache.zeppelin.user.AuthenticationInfo(account.login, userSession));
     return account;
   }
 
