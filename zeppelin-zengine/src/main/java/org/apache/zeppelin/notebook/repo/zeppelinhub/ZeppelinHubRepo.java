@@ -55,7 +55,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
   private static final Note EMPTY_NOTE = new Note();
   private final Client websocketClient;
 
-  private String token;
   private ZeppelinhubRestApiHandler restApiClient;
 
   private ConcurrentMap<String, String> userTokens = new ConcurrentHashMap<String, String>();
@@ -63,11 +62,10 @@ public class ZeppelinHubRepo implements NotebookRepo {
   public ZeppelinHubRepo(ZeppelinConfiguration conf) {
     String zeppelinHubUrl = getZeppelinHubUrl(conf);
     LOG.info("Initializing ZeppelinHub integration module");
-    token = conf.getString("ZEPPELINHUB_API_TOKEN", ZEPPELIN_CONF_PROP_NAME_TOKEN, "");
     restApiClient = ZeppelinhubRestApiHandler.newInstance(zeppelinHubUrl);
 
     websocketClient = Client.initialize(getZeppelinWebsocketUri(conf),
-        getZeppelinhubWebsocketUri(conf), token, conf);
+        getZeppelinhubWebsocketUri(conf), "", conf);
     websocketClient.start();
   }
 
@@ -154,8 +152,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
       return "";
     }
     List<Instance> instances = restApiClient.asyncGetInstances(ticket);
-    token = instances.get(0).token;
-    return token;
+    return instances.get(0).token;
   }
 
   private String getUserToken(String principal) {
@@ -176,9 +173,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
   
   @Override
   public List<NoteInfo> list(AuthenticationInfo subject) throws IOException {
-    if (StringUtils.isBlank(token)) {
-      return Collections.emptyList();
-    }
     if (subject == null) {
       return Collections.emptyList();
     }
