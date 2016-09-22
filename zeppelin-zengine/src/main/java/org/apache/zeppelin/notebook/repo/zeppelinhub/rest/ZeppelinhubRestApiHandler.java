@@ -56,14 +56,12 @@ public class ZeppelinhubRestApiHandler {
 
   private final HttpClient client;
   private final String zepelinhubUrl;
-  //private final String token;
 
-  public static ZeppelinhubRestApiHandler newInstance(String zeppelinhubUrl,
-      String token) {
-    return new ZeppelinhubRestApiHandler(zeppelinhubUrl, token);
+  public static ZeppelinhubRestApiHandler newInstance(String zeppelinhubUrl) {
+    return new ZeppelinhubRestApiHandler(zeppelinhubUrl);
   }
 
-  private ZeppelinhubRestApiHandler(String zeppelinhubUrl, String token) {
+  private ZeppelinhubRestApiHandler(String zeppelinhubUrl) {
     this.zepelinhubUrl = zeppelinhubUrl + DEFAULT_API_PATH + "/";
     //this.token = token;
 
