@@ -155,11 +155,14 @@ public class ZeppelinHubRepo implements NotebookRepo {
     }
     List<Instance> instances = restApiClient.asyncGetInstances(ticket);
     token = instances.get(0).token;
+    LOG.info("The following instance has been assigned {} with token {}", instances.get(0).name,
+        token);
     return token;
   }
 
   private String getUserToken(String principal) {
     String token = userTokens.get(principal);
+    LOG.info("Getting user token for {}", principal);
     if (StringUtils.isBlank(token)) {
       String ticket = UserSessionContainer.instance.getSession(principal);
       try {
@@ -197,7 +200,6 @@ public class ZeppelinHubRepo implements NotebookRepo {
     if (StringUtils.isBlank(noteId)) {
       return EMPTY_NOTE;
     }
-    //String response = zeppelinhubHandler.get(noteId);
     String token = getUserToken(subject.getUser());
     String response = restApiClient.asyncGet(token, noteId);
     Note note = GSON.fromJson(response, Note.class);
