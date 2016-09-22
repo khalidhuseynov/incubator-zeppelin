@@ -32,7 +32,6 @@ import org.apache.zeppelin.notebook.repo.NotebookRepo;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.Instance;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.UserSessionContainer;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.rest.ZeppelinhubRestApiHandler;
-import org.apache.zeppelin.notebook.repo.zeppelinhub.websocket.Client;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +52,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
   public static final String TOKEN_HEADER = "X-Zeppelin-Token";
   private static final Gson GSON = new Gson();
   private static final Note EMPTY_NOTE = new Note();
-  private final Client websocketClient;
+  //private final Client websocketClient;
 
   private ZeppelinhubRestApiHandler restApiClient;
 
@@ -64,9 +63,13 @@ public class ZeppelinHubRepo implements NotebookRepo {
     LOG.info("Initializing ZeppelinHub integration module");
     restApiClient = ZeppelinhubRestApiHandler.newInstance(zeppelinHubUrl);
 
+    //TODO(johnDoe): Refactor the way websocket client is managed.
+    // We need to handle multiple users.
+    /**
     websocketClient = Client.initialize(getZeppelinWebsocketUri(conf),
         getZeppelinhubWebsocketUri(conf), "", conf);
     websocketClient.start();
+    */
   }
 
   private String getZeppelinHubWsUri(URI api) throws URISyntaxException {
@@ -227,7 +230,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
 
   @Override
   public void close() {
-    websocketClient.stop();
+    //websocketClient.stop();
   }
 
   @Override
