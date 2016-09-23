@@ -24,8 +24,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.conf.ZeppelinConfiguration.ConfVars;
@@ -200,7 +202,7 @@ public class NotebookRepoSync implements NotebookRepo {
       for (String id : pushNoteIDs) {
         LOG.info("ID : " + id);
       }
-      pushNotes(subject, pushNoteIDs, srcRepo, dstRepo);
+      pushNotes(subject, pushNoteIDs, srcRepo, dstRepo, false);
     } else {
       LOG.info("Nothing to push");
     }
@@ -210,7 +212,7 @@ public class NotebookRepoSync implements NotebookRepo {
       for (String id : pullNoteIDs) {
         LOG.info("ID : " + id);
       }
-      pushNotes(subject, pullNoteIDs, dstRepo, srcRepo);
+      pushNotes(subject, pullNoteIDs, dstRepo, srcRepo, true);
     } else {
       LOG.info("Nothing to pull");
     }
@@ -233,9 +235,27 @@ public class NotebookRepoSync implements NotebookRepo {
   }
 
   private void pushNotes(AuthenticationInfo subject, List<String> ids, NotebookRepo localRepo,
-      NotebookRepo remoteRepo) throws IOException {
+      NotebookRepo remoteRepo, boolean setPermissions) throws IOException {
     for (String id : ids) {
       remoteRepo.save(localRepo.get(id, subject), subject);
+      if (setPermissions) {
+        makePrivate(id, subject);
+      }
+    }
+  }
+
+  private void makePrivate(String noteId, AuthenticationInfo subject) {
+    if (subject != null && !"anonymous".equals(subject.getUser())) {
+      NotebookAuthorization notebookAuthorization = NotebookAuthorization.getInstance();
+      Set<String> users = notebookAuthorization.getOwners(noteId);
+      users.add(subject.getUser());
+      notebookAuthorization.setOwners(noteId, users);
+      users = notebookAuthorization.getReaders(noteId);
+      users.add(subject.getUser());
+      notebookAuthorization.setReaders(noteId, users);
+      users = notebookAuthorization.getWriters(noteId);
+      users.add(subject.getUser());
+      notebookAuthorization.setWriters(noteId, users);
     }
   }
 
