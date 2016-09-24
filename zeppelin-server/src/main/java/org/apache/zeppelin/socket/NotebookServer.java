@@ -1192,6 +1192,7 @@ public class NotebookServer extends WebSocketServlet implements
     String text = (String) fromMessage.get("paragraph");
     p.setText(text);
     p.setTitle((String) fromMessage.get("title"));
+
     if (!fromMessage.principal.equals("anonymous")) {
       AuthenticationInfo authenticationInfo = new AuthenticationInfo(fromMessage.principal,
           fromMessage.ticket);
@@ -1214,8 +1215,7 @@ public class NotebookServer extends WebSocketServlet implements
       note.addParagraph();
     }
 
-    AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
-    note.persist(subject);
+    note.persist(p.getAuthenticationInfo());
     try {
       note.run(paragraphId);
     } catch (Exception ex) {
@@ -1512,9 +1512,8 @@ public class NotebookServer extends WebSocketServlet implements
       if (job.isTerminated()) {
         LOG.info("Job {} is finished", job.getId());
         try {
-          //TODO(khalid): may change interface for JobListener and pass subject from interpreter
-          //for this run should be user aware (interpreter)
-          note.persist(AuthenticationInfo.EMPTY);
+          AuthenticationInfo subject = getJobSubject(job);
+          note.persist(subject);
         } catch (IOException e) {
           LOG.error(e.toString(), e);
         }
@@ -1526,6 +1525,17 @@ public class NotebookServer extends WebSocketServlet implements
       } catch (IOException e) {
         LOG.error("can not broadcast for job manager {}", e);
       }
+    }
+
+    private AuthenticationInfo getJobSubject(Job job) {
+      //may need to go through all paragraphs
+      //TODO(khalid): find possibly a faster way
+      for (Paragraph p: note.getParagraphs()) {
+        if (p.getJobName() == job.getJobName()) {
+          return p.getAuthenticationInfo();
+        }
+      }
+      return AuthenticationInfo.EMPTY;
     }
 
     /**
