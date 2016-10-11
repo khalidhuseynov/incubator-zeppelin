@@ -99,6 +99,14 @@ public interface NotebookRepo {
    * @return list of revisions
    */
   @ZeppelinApi public List<Revision> revisionHistory(String noteId, AuthenticationInfo subject);
+  
+  /**
+   * Get NotebookRepo settings got the given user.
+   * 
+   * @param subject
+   * @return
+   */
+  @ZeppelinApi public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject);
 
   /**
    * Represents the 'Revision' a point in life of the notebook

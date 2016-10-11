@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +37,8 @@ import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Notebook repository sync with remote storage
@@ -95,6 +96,17 @@ public class NotebookRepoSync implements NotebookRepo {
       initializeDefaultStorage(conf);
     }
     //syncOnStart();
+  }
+  
+  public List<NotebookRepoWithSettings> getNotebookRepos(AuthenticationInfo subject) {
+    List<NotebookRepoWithSettings> reposSetting = Lists.newArrayList();
+
+    for (NotebookRepo repo : repos) {
+      reposSetting.add(NotebookRepoWithSettings
+                         .newInstance(repo.getClass().getSimpleName(), repo.getSettings(subject)));
+    }
+
+    return reposSetting;
   }
 
   private void syncOnStart() {
@@ -439,5 +451,16 @@ public class NotebookRepoSync implements NotebookRepo {
       LOG.error("Failed to list revision history", e);
     }
     return revisions;
+  }
+
+  @Override
+  public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject) {
+    List<NotebookRepoSettings> repoSettings = Collections.emptyList();
+    try {
+      repoSettings =  getRepo(0).getSettings(subject);
+    } catch (IOException e) {
+      LOG.error("Cannot get notebook repo settings", e);
+    }
+    return repoSettings;
   }
 }

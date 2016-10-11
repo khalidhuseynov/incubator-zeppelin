@@ -29,6 +29,7 @@ import org.apache.zeppelin.conf.ZeppelinConfiguration;
 import org.apache.zeppelin.notebook.Note;
 import org.apache.zeppelin.notebook.NoteInfo;
 import org.apache.zeppelin.notebook.repo.NotebookRepo;
+import org.apache.zeppelin.notebook.repo.NotebookRepoSettings;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.Instance;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.UserSessionContainer;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.rest.ZeppelinhubRestApiHandler;
@@ -38,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -150,11 +152,19 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return zeppelinhubUrl;
   }
   
-  private String getDefaultZeppelinInstanceToken(String ticket) throws IOException {
+  private List<Instance> getUserInstances(String ticket) throws IOException {
     if (StringUtils.isBlank(ticket)) {
+      return Collections.emptyList();
+    }
+    return restApiClient.asyncGetInstances(ticket);
+  }
+  
+  private String getDefaultZeppelinInstanceToken(String ticket) throws IOException {    
+    List<Instance> instances = getUserInstances(ticket);
+    if (instances.isEmpty()) {
       return StringUtils.EMPTY;
     }
-    List<Instance> instances = restApiClient.asyncGetInstances(ticket);
+
     String token = instances.get(0).token;
     LOG.debug("The following instance has been assigned {} with token {}", instances.get(0).name,
         token);
@@ -278,6 +288,41 @@ public class ZeppelinHubRepo implements NotebookRepo {
       LOG.error("Cannot get note history", e);
     }
     return history;
+  }
+
+  @Override
+  public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject) {
+    if (subject.isAnonymous()) {
+      return Collections.emptyList();
+    }
+
+    List<NotebookRepoSettings> settings = Lists.newArrayList();
+    String user = subject.getUser();
+    String zeppelinHubUserSession = UserSessionContainer.instance.getSession(user);
+    String userToken = getUserToken(user);
+    List<Instance> instances;
+
+    try {
+      instances = getUserInstances(zeppelinHubUserSession);
+    } catch (IOException e) {
+      // user not logged
+      //TODO(xxx): handle this case.
+      instances = Collections.emptyList();
+    }
+    
+    NotebookRepoSettings repoSetting = NotebookRepoSettings.newInstance();
+    repoSetting.type = NotebookRepoSettings.Type.DROPDOWN;
+    for (Instance instance : instances) {
+      if (instance.token.equals(userToken)) {
+        repoSetting.selected = Integer.toString(instance.id);
+      }
+      // we dont want to show token :)
+      instance.token = StringUtils.EMPTY;
+    }
+
+    repoSetting.value = instances;
+    settings.add(repoSetting);
+    return settings;
   }
 
 }
