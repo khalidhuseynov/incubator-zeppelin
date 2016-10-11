@@ -36,7 +36,7 @@ import com.google.gson.Gson;
  * NoteRepo rest API endpoint.
  * 
  */
-@Path("/interpreters")
+@Path("/notebook-repositories")
 @Produces("application/json")
 public class NoteRepoRestApi {
 
