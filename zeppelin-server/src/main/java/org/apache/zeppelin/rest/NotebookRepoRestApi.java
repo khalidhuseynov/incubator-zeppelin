@@ -18,7 +18,6 @@
 package org.apache.zeppelin.rest;
 
 import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -26,10 +25,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.zeppelin.annotation.ZeppelinApi;
+import org.apache.zeppelin.notebook.repo.NotebookRepoSync;
 import org.apache.zeppelin.server.JsonResponse;
+import org.apache.zeppelin.user.AuthenticationInfo;
+import org.apache.zeppelin.utils.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 
 /**
@@ -38,13 +41,16 @@ import com.google.gson.Gson;
  */
 @Path("/notebook-repositories")
 @Produces("application/json")
-public class NoteRepoRestApi {
+public class NotebookRepoRestApi {
 
-  private static final Logger LOG = LoggerFactory.getLogger(NoteRepoRestApi.class);
-  
+  private static final Logger LOG = LoggerFactory.getLogger(NotebookRepoRestApi.class);
   Gson gson = new Gson();
+  private NotebookRepoSync noteRepos;
 
-  public NoteRepoRestApi() {
+  public NotebookRepoRestApi() {}
+  
+  public NotebookRepoRestApi(NotebookRepoSync noteRepos) {
+    this.noteRepos = noteRepos;
   }
 
   /**
@@ -53,8 +59,9 @@ public class NoteRepoRestApi {
   @GET
   @ZeppelinApi
   public Response listSettings() {
-    LOG.info("Getting list of NoteRepo");
-    return new JsonResponse<>(Status.OK, "", "{}").build();
+    AuthenticationInfo subject = new AuthenticationInfo(SecurityUtils.getPrincipal());
+    LOG.info("Getting list of NoteRepo for user {}", subject.getUser());
+    return new JsonResponse<>(Status.OK, "", noteRepos.getNotebookRepos(subject)).build();
   }
   
   /**
@@ -64,11 +71,11 @@ public class NoteRepoRestApi {
    * @param settingId
    * @return
    */
-  @PUT
-  @Path("")
+  @GET
+  @Path("{repoName}")
   @ZeppelinApi
-  public Response updateSetting(String message, @PathParam("settingId") String settingId) {
-    return new JsonResponse<>(Status.OK, "", "").build();
+  public Response updateSetting(String message, @PathParam("repoName") String repoName) {
+    return new JsonResponse<>(Status.OK, "", Maps.newHashMap()).build();
   }
   
 }
