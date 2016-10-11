@@ -26,6 +26,7 @@ import org.apache.commons.lang.StringUtils;
 public class AuthenticationInfo {
   
   public static final AuthenticationInfo EMPTY = new AuthenticationInfo(StringUtils.EMPTY);
+  public static final String ANONYMOUS = "anonymous";
   
   String user;
   String ticket;
@@ -37,6 +38,10 @@ public class AuthenticationInfo {
     this.user = user;
   }
 
+  public boolean isAnonymous() {
+    return user.equals(ANONYMOUS);
+  }
+  
   /***
    *
    * @param user
