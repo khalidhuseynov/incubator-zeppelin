@@ -16,7 +16,10 @@
  */
 package org.apache.zeppelin.notebook.repo;
 
+import java.util.Collections;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Representation of a notebook repo with settings.
@@ -24,13 +27,46 @@ import java.util.List;
  */
 public class NotebookRepoWithSettings {
   public String name;
+  public String className;
   public List<NotebookRepoSettings> settings;
   
-  public static NotebookRepoWithSettings newInstance(String name,
-      List<NotebookRepoSettings> settings) {
-    NotebookRepoWithSettings r = new NotebookRepoWithSettings();
-    r.name = name;
-    r.settings = settings;
-    return r;
+  private NotebookRepoWithSettings() {}
+  
+  public static Builder builder(String name) {
+    return new Builder(name);
   }
+  
+  private NotebookRepoWithSettings(Builder builder) {
+    name = builder.name;
+    className = builder.className;
+    settings = builder.settings;
+  }
+  
+  /**
+   * Simple builder :).
+   */
+  public static class Builder {
+    private final String name;
+    private String className = StringUtils.EMPTY;
+    private List<NotebookRepoSettings> settings = Collections.emptyList();
+    
+    public Builder(String name) {
+      this.name = name;
+    }
+    
+    public NotebookRepoWithSettings build() {
+      return new NotebookRepoWithSettings(this);
+    }
+    
+    public Builder className(String className) {
+      this.className = className;
+      return this;
+    }
+    
+    public Builder settings(List<NotebookRepoSettings> settings) {
+      this.settings = settings;
+      return this;
+    }
+  }
+  
 }

@@ -101,9 +101,14 @@ public class NotebookRepoSync implements NotebookRepo {
   public List<NotebookRepoWithSettings> getNotebookRepos(AuthenticationInfo subject) {
     List<NotebookRepoWithSettings> reposSetting = Lists.newArrayList();
 
+    NotebookRepoWithSettings repoWithSettings;
     for (NotebookRepo repo : repos) {
-      reposSetting.add(NotebookRepoWithSettings
-                         .newInstance(repo.getClass().getSimpleName(), repo.getSettings(subject)));
+      repoWithSettings = NotebookRepoWithSettings
+                           .builder(repo.getClass().getSimpleName())
+                           .className(repo.getClass().getName())
+                           .settings(repo.getSettings(subject))
+                           .build();
+      reposSetting.add(repoWithSettings);
     }
 
     return reposSetting;
