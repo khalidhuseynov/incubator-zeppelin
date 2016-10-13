@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -242,5 +243,10 @@ public class AzureNotebookRepo implements NotebookRepo {
   @Override
   public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject) {
     return Collections.emptyList();
+  }
+
+  @Override
+  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
+    
   }
 }

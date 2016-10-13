@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -37,6 +38,7 @@ import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.util.CollectionUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -323,6 +325,48 @@ public class ZeppelinHubRepo implements NotebookRepo {
     repoSetting.value = instances;
     settings.add(repoSetting);
     return settings;
+  }
+  
+  private void updateTokenFor(int instaceId, String user) {
+    if (instaceId <= 0) {
+      return;
+    }
+    LOG.info("User {} will switch instance", user);
+    String ticket = UserSessionContainer.instance.getSession(user);
+    List<Instance> instances;
+    try {
+      instances = getUserInstances(ticket);
+      if (instances.isEmpty()) {
+        return;
+      }
+      String token = instances.get(0).token;
+      LOG.info("User {} switched from instance {}", user, instances.get(0).name);
+      userTokens.put(user, token);
+    } catch (IOException e) {
+      LOG.error("Cannot switch instacne for user {}", user, e);
+    }
+  }
+
+  @Override
+  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
+    if (CollectionUtils.isNullOrEmpty(settings)) {
+      LOG.error("Cannot update ZeppelinHub repo settings because of null settings");
+      return;
+    }
+    int instanceId = 0;
+
+    for (Map<String, String> setting : settings) {
+      if (setting.containsKey("id")) {
+        try {
+          instanceId = Integer.parseInt(setting.get("id"));
+        } catch (NumberFormatException e) {
+          LOG.error("ZeppelinHub Instance Id in not a valid integer", e);
+        }
+        break;
+      }
+
+      updateTokenFor(instanceId, subject.getUser());
+    }
   }
 
 }

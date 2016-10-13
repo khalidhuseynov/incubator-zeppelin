@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -275,5 +276,9 @@ public class S3NotebookRepo implements NotebookRepo {
   @Override
   public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject) {
     return Collections.emptyList();
+  }
+
+  @Override
+  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
   }
 }

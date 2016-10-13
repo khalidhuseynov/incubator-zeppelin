@@ -19,6 +19,7 @@ package org.apache.zeppelin.notebook.repo;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.zeppelin.annotation.ZeppelinApi;
 import org.apache.zeppelin.notebook.Note;
@@ -107,6 +108,15 @@ public interface NotebookRepo {
    * @return
    */
   @ZeppelinApi public List<NotebookRepoSettings> getSettings(AuthenticationInfo subject);
+  
+  /**
+   * update notebook repo settings.
+   * 
+   * @param settings
+   * @param subject
+   */
+  @ZeppelinApi public void updateSettings(List<Map<String, String>> settings,
+      AuthenticationInfo subject);
 
   /**
    * Represents the 'Revision' a point in life of the notebook
