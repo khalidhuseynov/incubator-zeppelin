@@ -1,5 +1,8 @@
 package org.apache.zeppelin.notebook.repo;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * Represent a notebook repo settings.
  * 
@@ -19,7 +22,7 @@ public class NotebookRepoSettings {
   }
   
   public Type type;
-  public Object value;
+  public List<Map<String, String>> value;
   public String selected;
   public String name;
 }

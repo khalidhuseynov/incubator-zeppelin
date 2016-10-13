@@ -303,6 +303,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
     String zeppelinHubUserSession = UserSessionContainer.instance.getSession(user);
     String userToken = getUserToken(user);
     List<Instance> instances;
+    List<Map<String, String>> values = Lists.newLinkedList();
 
     try {
       instances = getUserInstances(zeppelinHubUserSession);
@@ -318,11 +319,10 @@ public class ZeppelinHubRepo implements NotebookRepo {
       if (instance.token.equals(userToken)) {
         repoSetting.selected = Integer.toString(instance.id);
       }
-      // we dont want to show token :)
-      instance.token = StringUtils.EMPTY;
+      values.add(ImmutableMap.of("name", instance.name, "value", Integer.toString(instance.id)));
     }
 
-    repoSetting.value = instances;
+    repoSetting.value = values;
     repoSetting.name = "Instance";
     settings.add(repoSetting);
     return settings;
