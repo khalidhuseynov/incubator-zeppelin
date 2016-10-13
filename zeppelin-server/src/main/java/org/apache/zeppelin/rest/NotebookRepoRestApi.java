@@ -17,23 +17,29 @@
 
 package org.apache.zeppelin.rest;
 
+import java.util.Collections;
+
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.zeppelin.annotation.ZeppelinApi;
 import org.apache.zeppelin.notebook.repo.NotebookRepoSync;
+import org.apache.zeppelin.rest.message.NotebookRepoSettingsRequest;
 import org.apache.zeppelin.server.JsonResponse;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.utils.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 /**
  * NoteRepo rest API endpoint.
@@ -71,10 +77,29 @@ public class NotebookRepoRestApi {
    * @param settingId
    * @return
    */
-  @GET
-  @Path("{repoName}")
+  @PUT
   @ZeppelinApi
-  public Response updateSetting(String message, @PathParam("repoName") String repoName) {
+  public Response updateSetting(String payload) {
+    if (StringUtils.isBlank(payload)) {
+      return new JsonResponse<>(Status.NOT_FOUND, "", Collections.emptyMap()).build(); 
+    }
+    AuthenticationInfo subject = new AuthenticationInfo(SecurityUtils.getPrincipal());
+    NotebookRepoSettingsRequest newSettings = null;
+    try {
+      newSettings = gson.fromJson(payload, NotebookRepoSettingsRequest.class);
+    } catch (JsonSyntaxException e) {
+      LOG.error("Cannot update notebook repo settings", e);
+      return new JsonResponse<>(Status.NOT_ACCEPTABLE, "",
+                                ImmutableMap.of("error", "Invalid payload structure")).build();
+    }
+    
+    if (newSettings == null) {
+      LOG.error("Invalid property");
+      return new JsonResponse<>(Status.NOT_ACCEPTABLE, "",
+                                ImmutableMap.of("error", "Invalid payload")).build();
+    }
+    
+    noteRepos.updateNotebookRepo(newSettings.name, newSettings.settings, subject);
     return new JsonResponse<>(Status.OK, "", Maps.newHashMap()).build();
   }
   
