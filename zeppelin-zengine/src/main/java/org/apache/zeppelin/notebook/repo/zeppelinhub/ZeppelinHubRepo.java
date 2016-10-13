@@ -323,6 +323,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
     }
 
     repoSetting.value = instances;
+    repoSetting.name = "Instance";
     settings.add(repoSetting);
     return settings;
   }

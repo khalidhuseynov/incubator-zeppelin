@@ -21,4 +21,5 @@ public class NotebookRepoSettings {
   public Type type;
   public Object value;
   public String selected;
+  public String name;
 }
