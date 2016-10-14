@@ -328,7 +328,7 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return settings;
   }
   
-  private void updateTokenFor(int instaceId, String user) {
+  private void changeToken(int instaceId, String user) {
     if (instaceId <= 0) {
       return;
     }
@@ -340,9 +340,14 @@ public class ZeppelinHubRepo implements NotebookRepo {
       if (instances.isEmpty()) {
         return;
       }
-      String token = instances.get(0).token;
-      LOG.info("User {} switched from instance {}", user, instances.get(0).name);
-      userTokens.put(user, token);
+
+      for (Instance instance : instances) {
+        if (instance.id == instaceId) {
+          LOG.info("User {} switched from instance {}", user, instances.get(0).name);
+          userTokens.put(user, instance.token);
+          break;
+        }
+      }
     } catch (IOException e) {
       LOG.error("Cannot switch instacne for user {}", user, e);
     }
@@ -365,9 +370,8 @@ public class ZeppelinHubRepo implements NotebookRepo {
         }
         break;
       }
-
-      updateTokenFor(instanceId, subject.getUser());
     }
+    changeToken(instanceId, subject.getUser());
   }
 
 }
