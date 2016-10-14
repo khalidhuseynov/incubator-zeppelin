@@ -18,6 +18,7 @@
 package org.apache.zeppelin.rest;
 
 import java.util.Collections;
+import java.util.List;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -29,6 +30,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang.StringUtils;
 import org.apache.zeppelin.annotation.ZeppelinApi;
 import org.apache.zeppelin.notebook.repo.NotebookRepoSync;
+import org.apache.zeppelin.notebook.repo.NotebookRepoWithSettings;
 import org.apache.zeppelin.rest.message.NotebookRepoSettingsRequest;
 import org.apache.zeppelin.server.JsonResponse;
 import org.apache.zeppelin.user.AuthenticationInfo;
@@ -50,6 +52,7 @@ import com.google.gson.JsonSyntaxException;
 public class NotebookRepoRestApi {
 
   private static final Logger LOG = LoggerFactory.getLogger(NotebookRepoRestApi.class);
+
   Gson gson = new Gson();
   private NotebookRepoSync noteRepos;
 
@@ -67,7 +70,9 @@ public class NotebookRepoRestApi {
   public Response listSettings() {
     AuthenticationInfo subject = new AuthenticationInfo(SecurityUtils.getPrincipal());
     LOG.info("Getting list of NoteRepo for user {}", subject.getUser());
-    return new JsonResponse<>(Status.OK, "", noteRepos.getNotebookRepos(subject)).build();
+    List<NotebookRepoWithSettings> settings =
+        (subject.isAnonymous() ? Collections.EMPTY_LIST : noteRepos.getNotebookRepos(subject));
+    return new JsonResponse<>(Status.OK, "", settings).build();
   }
   
   /**
@@ -98,7 +103,7 @@ public class NotebookRepoRestApi {
       return new JsonResponse<>(Status.NOT_ACCEPTABLE, "",
                                 ImmutableMap.of("error", "Invalid payload")).build();
     }
-    
+    LOG.info("User {} is going to change repo setting", subject.getUser());
     noteRepos.updateNotebookRepo(newSettings.name, newSettings.settings, subject);
     return new JsonResponse<>(Status.OK, "", Maps.newHashMap()).build();
   }
