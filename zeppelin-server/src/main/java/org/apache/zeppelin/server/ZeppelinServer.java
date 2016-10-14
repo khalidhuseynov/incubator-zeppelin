@@ -323,7 +323,7 @@ public class ZeppelinServer extends Application {
     singletons.add(notebookApi);
 
     //notebookRepo
-    NotebookRepoRestApi notebookRepoApi = new NotebookRepoRestApi(notebookRepo);
+    NotebookRepoRestApi notebookRepoApi = new NotebookRepoRestApi(notebookRepo, notebookWsServer);
     singletons.add(notebookRepoApi);
     
     HeliumRestApi heliumApi = new HeliumRestApi(helium, heliumApplicationFactory, notebook);
