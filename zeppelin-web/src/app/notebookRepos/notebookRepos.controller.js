@@ -29,7 +29,6 @@
     // Public functions
 
     function saveNotebookRepo(valueform, repo, data) {
-      console.log('data %o', data);
       $http.put(baseUrlSrv.getRestApiBase() + '/notebook-repositories', {
         'name': repo.className,
         'settings': data
@@ -37,7 +36,6 @@
         var index = _.findIndex(vm.notebookRepos, {'className': repo.className});
         if (index >= 0) {
           vm.notebookRepos[index] = data.body;
-          console.log('repos %o, data %o', vm.notebookRepos, data.body);
         }
         valueform.$show();
       }).error(function() {
@@ -67,7 +65,6 @@
       $http.get(baseUrlSrv.getRestApiBase() + '/notebook-repositories')
       .success(function(data, status, headers, config) {
         vm.notebookRepos = data.body;
-        console.log('ya notebookRepos %o', vm.notebookRepos);
       }).error(function(data, status, headers, config) {
         if (status === 401) {
           ngToast.danger({
