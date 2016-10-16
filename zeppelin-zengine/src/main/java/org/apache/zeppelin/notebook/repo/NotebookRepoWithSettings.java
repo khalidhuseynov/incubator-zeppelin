@@ -26,6 +26,11 @@ import org.apache.commons.lang.StringUtils;
  *
  */
 public class NotebookRepoWithSettings {
+  
+  public static final NotebookRepoWithSettings EMPTY = NotebookRepoWithSettings
+                                                         .builder(StringUtils.EMPTY)
+                                                         .build();
+
   public String name;
   public String className;
   public List<NotebookRepoSettings> settings;
@@ -40,6 +45,10 @@ public class NotebookRepoWithSettings {
     name = builder.name;
     className = builder.className;
     settings = builder.settings;
+  }
+  
+  public boolean isEmpty() {
+    return this.equals(EMPTY);
   }
   
   /**

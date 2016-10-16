@@ -114,14 +114,21 @@ public class NotebookRepoSync implements NotebookRepo {
     return reposSetting;
   }
   
-  public void updateNotebookRepo(String name, Map<String, String> settings,
+  public NotebookRepoWithSettings updateNotebookRepo(String name, Map<String, String> settings,
       AuthenticationInfo subject) {
+    NotebookRepoWithSettings updatedSettings = NotebookRepoWithSettings.EMPTY;
     for (NotebookRepo repo : repos) {
       if (repo.getClass().getName().equals(name)) {
         repo.updateSettings(settings, subject);
+        updatedSettings = NotebookRepoWithSettings
+                            .builder(repo.getClass().getSimpleName())
+                            .className(repo.getClass().getName())
+                            .settings(repo.getSettings(subject))
+                            .build();
         break;
       }
     }
+    return updatedSettings;
   }
 
   private void syncOnStart() {

@@ -106,8 +106,11 @@ public class NotebookRepoRestApi {
                                 ImmutableMap.of("error", "Invalid payload")).build();
     }
     LOG.info("User {} is going to change repo setting", subject.getUser());
-    noteRepos.updateNotebookRepo(newSettings.name, newSettings.settings, subject);
-    notebookWsServer.broadcastReloadedNoteList(subject);
-    return new JsonResponse<>(Status.OK, "", newSettings).build();
+    NotebookRepoWithSettings updatedSettings =
+        noteRepos.updateNotebookRepo(newSettings.name, newSettings.settings, subject);
+    if (!updatedSettings.isEmpty()) {
+      notebookWsServer.broadcastReloadedNoteList(subject);
+    }
+    return new JsonResponse<>(Status.OK, "", updatedSettings).build();
   }
 }
