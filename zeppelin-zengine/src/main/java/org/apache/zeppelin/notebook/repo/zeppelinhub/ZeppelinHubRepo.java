@@ -328,10 +328,12 @@ public class ZeppelinHubRepo implements NotebookRepo {
     return settings;
   }
   
-  private void changeToken(int instaceId, String user) {
-    if (instaceId <= 0) {
+  private void changeToken(int instanceId, String user) {
+    if (instanceId <= 0) {
+      LOG.error("User {} tried to switch to a non valid instance {}", user, instanceId);
       return;
     }
+
     LOG.info("User {} will switch instance", user);
     String ticket = UserSessionContainer.instance.getSession(user);
     List<Instance> instances;
@@ -342,8 +344,8 @@ public class ZeppelinHubRepo implements NotebookRepo {
       }
 
       for (Instance instance : instances) {
-        if (instance.id == instaceId) {
-          LOG.info("User {} switched from instance {}", user, instances.get(0).name);
+        if (instance.id == instanceId) {
+          LOG.info("User {} switched to instance {}", user, instances.get(0).name);
           userTokens.put(user, instance.token);
           break;
         }
@@ -362,9 +364,9 @@ public class ZeppelinHubRepo implements NotebookRepo {
     int instanceId = 0;
 
     for (Map<String, String> setting : settings) {
-      if (setting.containsKey("id")) {
+      if (setting.containsKey("Instance")) {
         try {
-          instanceId = Integer.parseInt(setting.get("id"));
+          instanceId = Integer.parseInt(setting.get("Instance"));
         } catch (NumberFormatException e) {
           LOG.error("ZeppelinHub Instance Id in not a valid integer", e);
         }

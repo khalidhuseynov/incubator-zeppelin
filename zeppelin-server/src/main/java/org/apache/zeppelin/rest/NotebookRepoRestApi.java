@@ -111,5 +111,4 @@ public class NotebookRepoRestApi {
     notebookWsServer.broadcastReloadedNoteList(subject);
     return new JsonResponse<>(Status.OK, "", Maps.newHashMap()).build();
   }
-  
 }
