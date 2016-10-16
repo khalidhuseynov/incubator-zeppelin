@@ -40,7 +40,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -109,6 +108,6 @@ public class NotebookRepoRestApi {
     LOG.info("User {} is going to change repo setting", subject.getUser());
     noteRepos.updateNotebookRepo(newSettings.name, newSettings.settings, subject);
     notebookWsServer.broadcastReloadedNoteList(subject);
-    return new JsonResponse<>(Status.OK, "", Maps.newHashMap()).build();
+    return new JsonResponse<>(Status.OK, "", newSettings).build();
   }
 }
