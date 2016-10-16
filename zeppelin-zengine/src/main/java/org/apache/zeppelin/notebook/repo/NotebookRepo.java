@@ -115,8 +115,7 @@ public interface NotebookRepo {
    * @param settings
    * @param subject
    */
-  @ZeppelinApi public void updateSettings(List<Map<String, String>> settings,
-      AuthenticationInfo subject);
+  @ZeppelinApi public void updateSettings(Map<String, String> settings, AuthenticationInfo subject);
 
   /**
    * Represents the 'Revision' a point in life of the notebook

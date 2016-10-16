@@ -16,7 +16,6 @@
  */
 package org.apache.zeppelin.rest.message;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +25,7 @@ import java.util.Map;
 public class NotebookRepoSettingsRequest {
 
   public String name;
-  public List<Map<String, String>> settings;
+  public Map<String, String> settings;
 
   public NotebookRepoSettingsRequest() {}
 }

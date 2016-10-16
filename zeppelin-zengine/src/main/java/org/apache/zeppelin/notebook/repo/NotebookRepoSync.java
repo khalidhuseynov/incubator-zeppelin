@@ -114,7 +114,7 @@ public class NotebookRepoSync implements NotebookRepo {
     return reposSetting;
   }
   
-  public void updateNotebookRepo(String name, List<Map<String, String>> settings,
+  public void updateNotebookRepo(String name, Map<String, String> settings,
       AuthenticationInfo subject) {
     for (NotebookRepo repo : repos) {
       if (repo.getClass().getName().equals(name)) {
@@ -480,7 +480,7 @@ public class NotebookRepoSync implements NotebookRepo {
   }
 
   @Override
-  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
+  public void updateSettings(Map<String, String> settings, AuthenticationInfo subject) {
     try {
       getRepo(0).updateSettings(settings, subject);
     } catch (IOException e) {

@@ -34,11 +34,11 @@ import org.apache.zeppelin.notebook.repo.NotebookRepoSettings;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.Instance;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.model.UserSessionContainer;
 import org.apache.zeppelin.notebook.repo.zeppelinhub.rest.ZeppelinhubRestApiHandler;
+import org.apache.zeppelin.notebook.utility.MapsUtils;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.util.CollectionUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -356,21 +356,18 @@ public class ZeppelinHubRepo implements NotebookRepo {
   }
 
   @Override
-  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
-    if (CollectionUtils.isNullOrEmpty(settings)) {
+  public void updateSettings(Map<String, String> settings, AuthenticationInfo subject) {
+    if (MapsUtils.isNullOrEmpty(settings)) {
       LOG.error("Cannot update ZeppelinHub repo settings because of null settings");
       return;
     }
     int instanceId = 0;
 
-    for (Map<String, String> setting : settings) {
-      if (setting.containsKey("Instance")) {
-        try {
-          instanceId = Integer.parseInt(setting.get("Instance"));
-        } catch (NumberFormatException e) {
-          LOG.error("ZeppelinHub Instance Id in not a valid integer", e);
-        }
-        break;
+    if (settings.containsKey("Instance")) {
+      try {
+        instanceId = Integer.parseInt(settings.get("Instance"));
+      } catch (NumberFormatException e) {
+        LOG.error("ZeppelinHub Instance Id in not a valid integer", e);
       }
     }
     changeToken(instanceId, subject.getUser());

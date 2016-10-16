@@ -293,7 +293,7 @@ public class VFSNotebookRepo implements NotebookRepo {
   }
 
   @Override
-  public void updateSettings(List<Map<String, String>> settings, AuthenticationInfo subject) {
+  public void updateSettings(Map<String, String> settings, AuthenticationInfo subject) {
   }
 
 }
