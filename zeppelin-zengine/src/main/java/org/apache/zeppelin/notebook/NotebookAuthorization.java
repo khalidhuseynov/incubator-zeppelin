@@ -60,7 +60,7 @@ public class NotebookAuthorization {
         LOG.error("Error loading NotebookAuthorization", e);
       }
     }
-    
+
     return instance;
   }
 
@@ -181,11 +181,11 @@ public class NotebookAuthorization {
     Map<String, Set<String>> noteAuthInfo = authInfo.get(noteId);
     Set<String> entities = null;
     if (noteAuthInfo == null) {
-      entities = new HashSet<String>();
+      entities = new HashSet<>();
     } else {
       entities = noteAuthInfo.get("owners");
       if (entities == null) {
-        entities = new HashSet<String>();
+        entities = new HashSet<>();
       }
     }
     return entities;
@@ -195,11 +195,11 @@ public class NotebookAuthorization {
     Map<String, Set<String>> noteAuthInfo = authInfo.get(noteId);
     Set<String> entities = null;
     if (noteAuthInfo == null) {
-      entities = new HashSet<String>();
+      entities = new HashSet<>();
     } else {
       entities = noteAuthInfo.get("readers");
       if (entities == null) {
-        entities = new HashSet<String>();
+        entities = new HashSet<>();
       }
     }
     return entities;
@@ -209,11 +209,11 @@ public class NotebookAuthorization {
     Map<String, Set<String>> noteAuthInfo = authInfo.get(noteId);
     Set<String> entities = null;
     if (noteAuthInfo == null) {
-      entities = new HashSet<String>();
+      entities = new HashSet<>();
     } else {
       entities = noteAuthInfo.get("writers");
       if (entities == null) {
-        entities = new HashSet<String>();
+        entities = new HashSet<>();
       }
     }
     return entities;
@@ -235,7 +235,7 @@ public class NotebookAuthorization {
 
   // return true if b is empty or if (a intersection b) is non-empty
   private boolean isMember(Set<String> a, Set<String> b) {
-    Set<String> intersection = new HashSet<String>(b);
+    Set<String> intersection = new HashSet<>(b);
     intersection.retainAll(a);
     return (b.isEmpty() || (intersection.size() > 0));
   }

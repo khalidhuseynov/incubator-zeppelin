@@ -33,13 +33,25 @@ import org.apache.zeppelin.dep.Dependency;
 import org.apache.zeppelin.dep.DependencyResolver;
 import org.apache.zeppelin.interpreter.mock.MockInterpreter1;
 import org.apache.zeppelin.interpreter.mock.MockInterpreter2;
+import org.apache.zeppelin.notebook.repo.zeppelinhub.security.Authentication;
+import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.interpreter.remote.RemoteInterpreter;
+import org.apache.zeppelin.notebook.JobListenerFactory;
+import org.apache.zeppelin.notebook.Note;
+import org.apache.zeppelin.notebook.Notebook;
+import org.apache.zeppelin.notebook.repo.NotebookRepo;
+import org.apache.zeppelin.notebook.repo.VFSNotebookRepo;
+import org.apache.zeppelin.scheduler.SchedulerFactory;
+import org.apache.zeppelin.search.SearchService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.quartz.SchedulerException;
 import org.sonatype.aether.RepositoryException;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import org.mockito.Mock;
 
 public class InterpreterFactoryTest {
 
@@ -47,26 +59,43 @@ public class InterpreterFactoryTest {
   private File tmpDir;
   private ZeppelinConfiguration conf;
   private InterpreterContext context;
+  private Notebook notebook;
+  private NotebookRepo notebookRepo;
   private DependencyResolver depResolver;
+  private SchedulerFactory schedulerFactory;
+  @Mock
+  private JobListenerFactory jobListenerFactory;
 
   @Before
   public void setUp() throws Exception {
     tmpDir = new File(System.getProperty("java.io.tmpdir")+"/ZeppelinLTest_"+System.currentTimeMillis());
     tmpDir.mkdirs();
     new File(tmpDir, "conf").mkdirs();
+    FileUtils.copyDirectory(new File("src/test/resources/interpreter"), new File(tmpDir, "interpreter"));
 
-    Map<String, InterpreterProperty> propertiesMockInterpreter1 = new HashMap<String, InterpreterProperty>();
+    Map<String, InterpreterProperty> propertiesMockInterpreter1 = new HashMap<>();
     propertiesMockInterpreter1.put("PROPERTY_1", new InterpreterProperty("PROPERTY_1", "", "VALUE_1", "desc"));
     propertiesMockInterpreter1.put("property_2", new InterpreterProperty("", "property_2", "value_2", "desc"));
     MockInterpreter1.register("mock1", "mock1", "org.apache.zeppelin.interpreter.mock.MockInterpreter1", propertiesMockInterpreter1);
     MockInterpreter2.register("mock2", "org.apache.zeppelin.interpreter.mock.MockInterpreter2");
 
     System.setProperty(ConfVars.ZEPPELIN_HOME.getVarName(), tmpDir.getAbsolutePath());
-    System.setProperty(ConfVars.ZEPPELIN_INTERPRETERS.getVarName(), "org.apache.zeppelin.interpreter.mock.MockInterpreter1,org.apache.zeppelin.interpreter.mock.MockInterpreter2");
+    System.setProperty(ConfVars.ZEPPELIN_INTERPRETERS.getVarName(),
+        "org.apache.zeppelin.interpreter.mock.MockInterpreter1," +
+        "org.apache.zeppelin.interpreter.mock.MockInterpreter2," +
+        "org.apache.zeppelin.interpreter.mock.MockInterpreter11");
+    System.setProperty(ConfVars.ZEPPELIN_INTERPRETER_GROUP_ORDER.getVarName(),
+        "mock1,mock2,mock11,dev");
     conf = new ZeppelinConfiguration();
+    schedulerFactory = new SchedulerFactory();
     depResolver = new DependencyResolver(tmpDir.getAbsolutePath() + "/local-repo");
-    factory = new InterpreterFactory(conf, new InterpreterOption(false), null, null, null, depResolver);
+    factory = new InterpreterFactory(conf, new InterpreterOption(false), null, null, null, depResolver, false);
     context = new InterpreterContext("note", "id", "title", "text", null, null, null, null, null, null, null);
+
+    SearchService search = mock(SearchService.class);
+    notebookRepo = new VFSNotebookRepo(conf);
+    notebook = new Notebook(conf, notebookRepo, schedulerFactory, factory, jobListenerFactory, search,
+        null, null);
   }
 
   @After
@@ -87,8 +116,8 @@ public class InterpreterFactoryTest {
 
 //    mock1Setting = factory.createNewSetting("mock11", "mock1", new ArrayList<Dependency>(), new InterpreterOption(false), new Properties());
 
-    InterpreterGroup interpreterGroup = mock1Setting.getInterpreterGroup("sharedProcess");
-    factory.createInterpretersForNote(mock1Setting, "sharedProcess", "session");
+    InterpreterGroup interpreterGroup = mock1Setting.getInterpreterGroup("user", "sharedProcess");
+    factory.createInterpretersForNote(mock1Setting, "user", "sharedProcess", "session");
 
     // get interpreter
     assertNotNull("get Interpreter", interpreterGroup.get("session").get(0));
@@ -98,12 +127,12 @@ public class InterpreterFactoryTest {
 
     // restart interpreter
     factory.restart(mock1Setting.getId());
-    assertNull(mock1Setting.getInterpreterGroup("sharedProcess").get("session"));
+    assertNull(mock1Setting.getInterpreterGroup("user", "sharedProcess").get("session"));
   }
 
   @Test
   public void testRemoteRepl() throws Exception {
-    factory = new InterpreterFactory(conf, new InterpreterOption(true), null, null, null, depResolver);
+    factory = new InterpreterFactory(conf, new InterpreterOption(true), null, null, null, depResolver, false);
     List<InterpreterSetting> all = factory.get();
     InterpreterSetting mock1Setting = null;
     for (InterpreterSetting setting : all) {
@@ -112,8 +141,8 @@ public class InterpreterFactoryTest {
         break;
       }
     }
-    InterpreterGroup interpreterGroup = mock1Setting.getInterpreterGroup("sharedProcess");
-    factory.createInterpretersForNote(mock1Setting, "sharedProcess", "session");
+    InterpreterGroup interpreterGroup = mock1Setting.getInterpreterGroup("user", "sharedProcess");
+    factory.createInterpretersForNote(mock1Setting, "user", "sharedProcess", "session");
     // get interpreter
     assertNotNull("get Interpreter", interpreterGroup.get("session").get(0));
     assertTrue(interpreterGroup.get("session").get(0) instanceof LazyOpenInterpreter);
@@ -128,7 +157,7 @@ public class InterpreterFactoryTest {
   public void testFactoryDefaultList() throws IOException, RepositoryException {
     // get default settings
     List<String> all = factory.getDefaultInterpreterSettingList();
-    assertTrue(factory.getRegisteredInterpreterList().size() >= all.size());
+    assertTrue(factory.get().size() >= all.size());
   }
 
   @Test
@@ -159,15 +188,15 @@ public class InterpreterFactoryTest {
     factory.createNewSetting("new-mock1", "mock1", new LinkedList<Dependency>(), new InterpreterOption(false), new Properties());
     assertEquals(numInterpreters + 1, factory.get().size());
 
-    InterpreterFactory factory2 = new InterpreterFactory(conf, null, null, null, depResolver);
+    InterpreterFactory factory2 = new InterpreterFactory(conf, null, null, null, depResolver, false);
     assertEquals(numInterpreters + 1, factory2.get().size());
   }
 
   @Test
   public void testInterpreterAliases() throws IOException, RepositoryException {
-    factory = new InterpreterFactory(conf, null, null, null, depResolver);
-    final InterpreterInfo info1 = new InterpreterInfo("className1", "name1", true);
-    final InterpreterInfo info2 = new InterpreterInfo("className2", "name1", true);
+    factory = new InterpreterFactory(conf, null, null, null, depResolver, false);
+    final InterpreterInfo info1 = new InterpreterInfo("className1", "name1", true, null);
+    final InterpreterInfo info2 = new InterpreterInfo("className2", "name1", true, null);
     factory.add("group1", new ArrayList<InterpreterInfo>(){{
       add(info1);
     }}, new ArrayList<Dependency>(), new InterpreterOption(true), new Properties(), "/path1");
@@ -178,14 +207,37 @@ public class InterpreterFactoryTest {
     final InterpreterSetting setting1 = factory.createNewSetting("test-group1", "group1", new ArrayList<Dependency>(), new InterpreterOption(true), new Properties());
     final InterpreterSetting setting2 = factory.createNewSetting("test-group2", "group1", new ArrayList<Dependency>(), new InterpreterOption(true), new Properties());
 
-    factory.setInterpreters("note", new ArrayList<String>() {{
+    factory.setInterpreters("user", "note", new ArrayList<String>() {{
       add(setting1.getId());
       add(setting2.getId());
     }});
 
-    assertEquals("className1", factory.getInterpreter("note", "test-group1").getClassName());
-    assertEquals("className1", factory.getInterpreter("note", "group1").getClassName());
+    assertEquals("className1", factory.getInterpreter("user1", "note", "test-group1").getClassName());
+    assertEquals("className1", factory.getInterpreter("user1", "note", "group1").getClassName());
   }
+
+  @Test
+  public void testMultiUser() throws IOException, RepositoryException {
+    factory = new InterpreterFactory(conf, null, null, null, depResolver, true);
+    final InterpreterInfo info1 = new InterpreterInfo("className1", "name1", true, null);
+    factory.add("group1", new ArrayList<InterpreterInfo>(){{
+      add(info1);
+    }}, new ArrayList<Dependency>(), new InterpreterOption(true), new Properties(), "/path1");
+
+    InterpreterOption perUserInterpreterOption = new InterpreterOption(true, InterpreterOption.ISOLATED, InterpreterOption.SHARED);
+    final InterpreterSetting setting1 = factory.createNewSetting("test-group1", "group1", new ArrayList<Dependency>(), perUserInterpreterOption, new Properties());
+
+    factory.setInterpreters("user1", "note", new ArrayList<String>() {{
+      add(setting1.getId());
+    }});
+
+    factory.setInterpreters("user2", "note", new ArrayList<String>() {{
+      add(setting1.getId());
+    }});
+
+    assertNotEquals(factory.getInterpreter("user1", "note", "test-group1"), factory.getInterpreter("user2", "note", "test-group1"));
+  }
+
 
   @Test
   public void testInvalidInterpreterSettingName() {
@@ -195,5 +247,30 @@ public class InterpreterFactoryTest {
     } catch (IOException e) {
       assertEquals("'.' is invalid for InterpreterSetting name.", e.getMessage());
     }
+  }
+
+
+  @Test
+  public void getEditorSetting() throws IOException, RepositoryException, SchedulerException {
+    List<String> intpIds = new ArrayList<>();
+    for(InterpreterSetting intpSetting: factory.get()) {
+      if (intpSetting.getName().startsWith("mock1")) {
+        intpIds.add(intpSetting.getId());
+      }
+    }
+    Note note = notebook.createNote(intpIds, new AuthenticationInfo("anonymous"));
+
+    // get editor setting from interpreter-setting.json
+    Map<String, Object> editor = factory.getEditorSetting("user1", note.getId(), "mock11");
+    assertEquals("java", editor.get("language"));
+
+    // when interpreter is not loaded via interpreter-setting.json
+    // or editor setting doesn't exit
+    editor = factory.getEditorSetting("user1", note.getId(), "mock1");
+    assertEquals(null, editor.get("language"));
+
+    // when interpreter is not bound to note
+    editor = factory.getEditorSetting("user1", note.getId(), "mock2");
+    assertEquals("text", editor.get("language"));
   }
 }

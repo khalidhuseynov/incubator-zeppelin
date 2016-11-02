@@ -49,6 +49,7 @@ import org.apache.spark.ui.jobs.JobProgressListener;
 import org.apache.zeppelin.interpreter.Interpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
+import org.apache.zeppelin.interpreter.InterpreterHookRegistry;
 import org.apache.zeppelin.interpreter.InterpreterProperty;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import org.apache.zeppelin.interpreter.InterpreterResult.Code;
@@ -101,6 +102,7 @@ public class SparkInterpreter extends Interpreter {
   private SparkConf conf;
   private static SparkContext sc;
   private static SQLContext sqlc;
+  private static InterpreterHookRegistry hooks;
   private static SparkEnv env;
   private static Object sparkSession;    // spark 2.x
   private static JobProgressListener sparkListener;
@@ -118,7 +120,7 @@ public class SparkInterpreter extends Interpreter {
 
   private Map<String, Object> binder;
   private SparkVersion sparkVersion;
-  private File outputDir;          // class outputdir for scala 2.11
+  private static File outputDir;          // class outputdir for scala 2.11
   private Object classServer;      // classserver for scala 2.11
 
 
@@ -384,6 +386,7 @@ public class SparkInterpreter extends Interpreter {
     }
 
     String classServerUri = null;
+    String replClassOutputDirectory = null;
 
     try { // in case of spark 1.1x, spark 1.2x
       Method classServer = intp.getClass().getMethod("classServer");
@@ -407,6 +410,16 @@ public class SparkInterpreter extends Interpreter {
       }
     }
 
+    if (classServerUri == null) {
+      try { // for RcpEnv
+        Method getClassOutputDirectory = intp.getClass().getMethod("getClassOutputDirectory");
+        File classOutputDirectory = (File) getClassOutputDirectory.invoke(intp);
+        replClassOutputDirectory = classOutputDirectory.getAbsolutePath();
+      } catch (NoSuchMethodException | SecurityException | IllegalAccessException
+              | IllegalArgumentException | InvocationTargetException e) {
+        // continue
+      }
+    }
 
     if (Utils.isScala2_11()) {
       classServer = createHttpServer(outputDir);
@@ -419,6 +432,10 @@ public class SparkInterpreter extends Interpreter {
 
     if (classServerUri != null) {
       conf.set("spark.repl.class.uri", classServerUri);
+    }
+
+    if (replClassOutputDirectory != null) {
+      conf.set("spark.repl.class.outputDir", replClassOutputDirectory);
     }
 
     if (jars.length > 0) {
@@ -464,7 +481,7 @@ public class SparkInterpreter extends Interpreter {
 
     //Only one of py4j-0.9-src.zip and py4j-0.8.2.1-src.zip should exist
     String[] pythonLibs = new String[]{"pyspark.zip", "py4j-0.9-src.zip", "py4j-0.8.2.1-src.zip",
-      "py4j-0.10.1-src.zip"};
+      "py4j-0.10.1-src.zip", "py4j-0.10.3-src.zip"};
     ArrayList<String> pythonLibUris = new ArrayList<>();
     for (String lib : pythonLibs) {
       File libFile = new File(pysparkPath, lib);
@@ -579,10 +596,28 @@ public class SparkInterpreter extends Interpreter {
     }
 
     String[] argsArray = args.split(" ");
-    LinkedList<String> argList = new LinkedList<String>();
+    LinkedList<String> argList = new LinkedList<>();
     for (String arg : argsArray) {
       argList.add(arg);
     }
+
+    DepInterpreter depInterpreter = getDepInterpreter();
+    String depInterpreterClasspath = "";
+    if (depInterpreter != null) {
+      SparkDependencyContext depc = depInterpreter.getDependencyContext();
+      if (depc != null) {
+        List<File> files = depc.getFiles();
+        if (files != null) {
+          for (File f : files) {
+            if (depInterpreterClasspath.length() > 0) {
+              depInterpreterClasspath += File.pathSeparator;
+            }
+            depInterpreterClasspath += f.getAbsolutePath();
+          }
+        }
+      }
+    }
+
 
     if (Utils.isScala2_10()) {
       scala.collection.immutable.List<String> list =
@@ -603,15 +638,30 @@ public class SparkInterpreter extends Interpreter {
         sparkReplClassDir = System.getProperty("java.io.tmpdir");
       }
 
-      outputDir = createTempDir(sparkReplClassDir);
-
+      synchronized (sharedInterpreterLock) {
+        if (outputDir == null) {
+          outputDir = createTempDir(sparkReplClassDir);
+        }
+      }
       argList.add("-Yrepl-class-based");
       argList.add("-Yrepl-outdir");
       argList.add(outputDir.getAbsolutePath());
+
+      String classpath = "";
       if (conf.contains("spark.jars")) {
-        String jars = StringUtils.join(conf.get("spark.jars").split(","), File.separator);
+        classpath = StringUtils.join(conf.get("spark.jars").split(","), File.separator);
+      }
+
+      if (!depInterpreterClasspath.isEmpty()) {
+        if (!classpath.isEmpty()) {
+          classpath += File.separator;
+        }
+        classpath += depInterpreterClasspath;
+      }
+
+      if (!classpath.isEmpty()) {
         argList.add("-classpath");
-        argList.add(jars);
+        argList.add(classpath);
       }
 
       scala.collection.immutable.List<String> list =
@@ -623,6 +673,7 @@ public class SparkInterpreter extends Interpreter {
     // set classpath for scala compiler
     PathSetting pathSettings = settings.classpath();
     String classpath = "";
+
     List<File> paths = currentClassPath();
     for (File f : paths) {
       if (classpath.length() > 0) {
@@ -641,21 +692,10 @@ public class SparkInterpreter extends Interpreter {
     }
 
     // add dependency from DepInterpreter
-    DepInterpreter depInterpreter = getDepInterpreter();
-    if (depInterpreter != null) {
-      SparkDependencyContext depc = depInterpreter.getDependencyContext();
-      if (depc != null) {
-        List<File> files = depc.getFiles();
-        if (files != null) {
-          for (File f : files) {
-            if (classpath.length() > 0) {
-              classpath += File.pathSeparator;
-            }
-            classpath += f.getAbsolutePath();
-          }
-        }
-      }
+    if (classpath.length() > 0) {
+      classpath += File.pathSeparator;
     }
+    classpath += depInterpreterClasspath;
 
     // add dependency from local repo
     String localRepo = getProperty("zeppelin.interpreter.localRepo");
@@ -679,7 +719,7 @@ public class SparkInterpreter extends Interpreter {
 
 
     // set classloader for scala compiler
-    settings.explicitParentLoader_$eq(new Some<ClassLoader>(Thread.currentThread()
+    settings.explicitParentLoader_$eq(new Some<>(Thread.currentThread()
         .getContextClassLoader()));
     BooleanSetting b = (BooleanSetting) settings.usejavacp();
     b.v_$eq(true);
@@ -775,8 +815,10 @@ public class SparkInterpreter extends Interpreter {
       sqlc = getSQLContext();
 
       dep = getDependencyResolver();
+      
+      hooks = getInterpreterGroup().getInterpreterHookRegistry();
 
-      z = new ZeppelinContext(sc, sqlc, null, dep,
+      z = new ZeppelinContext(sc, sqlc, null, dep, hooks,
               Integer.parseInt(getProperty("zeppelin.spark.maxResult")));
 
       interpret("@transient val _binder = new java.util.HashMap[String, Object]()");
@@ -915,7 +957,7 @@ public class SparkInterpreter extends Interpreter {
   }
 
   private List<File> classPath(ClassLoader cl) {
-    List<File> paths = new LinkedList<File>();
+    List<File> paths = new LinkedList<>();
     if (cl == null) {
       return paths;
     }
@@ -936,7 +978,7 @@ public class SparkInterpreter extends Interpreter {
   public List<InterpreterCompletion> completion(String buf, int cursor) {
     if (completer == null) {
       logger.warn("Can't find completer");
-      return new LinkedList<InterpreterCompletion>();
+      return new LinkedList<>();
     }
 
     if (buf.length() < cursor) {
@@ -952,7 +994,7 @@ public class SparkInterpreter extends Interpreter {
     Candidates ret = c.complete(completionText, cursor);
 
     List<String> candidates = WrapAsJava$.MODULE$.seqAsJavaList(ret.candidates());
-    List<InterpreterCompletion> completions = new LinkedList<InterpreterCompletion>();
+    List<InterpreterCompletion> completions = new LinkedList<>();
 
     for (String candidate : candidates) {
       completions.add(new InterpreterCompletion(candidate, candidate));
@@ -1025,7 +1067,7 @@ public class SparkInterpreter extends Interpreter {
       return null;
     }
     Object obj = r.lineRep().call("$result",
-        JavaConversions.asScalaBuffer(new LinkedList<Object>()));
+        JavaConversions.asScalaBuffer(new LinkedList<>()));
     return obj;
   }
 
@@ -1307,7 +1349,12 @@ public class SparkInterpreter extends Interpreter {
     logger.info("Close interpreter");
 
     if (numReferenceOfSparkContext.decrementAndGet() == 0) {
-      sc.stop();
+      if (sparkSession != null) {
+        Utils.invokeMethod(sparkSession, "stop");
+      } else if (sc != null){
+        sc.stop();
+      }
+      sparkSession = null;
       sc = null;
       if (classServer != null) {
         Utils.invokeMethod(classServer, "stop");
